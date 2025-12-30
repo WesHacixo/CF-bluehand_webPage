@@ -110,6 +110,13 @@ function CanvasPlaygroundInner() {
   const [currentConstellation, setCurrentConstellation] = useState(0)
   const rotationStartRef = useRef({ x: 0, y: 0 })
 
+  // Mobile gesture tracking
+  const touchStateRef = useRef({
+    touches: [] as { id: number; x: number; y: number }[],
+    lastPinchDistance: 0,
+    lastRotationAngle: 0,
+  })
+
   const { mode, theme, toggleMode, pulseSeal, spawnBurst } = useApp()
 
   const themeColor = THEME_COLORS[theme] || THEME_COLORS.neutral
@@ -134,8 +141,12 @@ function CanvasPlaygroundInner() {
 
   const spawnCluster = useCallback(
     (x: number, y: number, count: number, vx = 0, vy = 0) => {
-      for (let i = 0; i < count; i++) {
-        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5
+      // Reduce particle count on mobile for performance
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      const adjustedCount = isMobile ? Math.floor(count * 0.6) : count
+
+      for (let i = 0; i < adjustedCount; i++) {
+        const angle = (Math.PI * 2 * i) / adjustedCount + Math.random() * 0.5
         const dist = 10 + Math.random() * 30
         const nx = x + Math.cos(angle) * dist
         const ny = y + Math.sin(angle) * dist
@@ -143,9 +154,10 @@ function CanvasPlaygroundInner() {
           makeNode(nx, ny, vx * 0.3 + Math.cos(angle) * 0.5, vy * 0.3 + Math.sin(angle) * 0.5, "spark"),
         )
       }
-      // Cap nodes
-      if (nodesRef.current.length > 300) {
-        nodesRef.current.splice(0, nodesRef.current.length - 300)
+      // Cap nodes - lower limit on mobile
+      const maxNodes = isMobile ? 150 : 300
+      if (nodesRef.current.length > maxNodes) {
+        nodesRef.current.splice(0, nodesRef.current.length - maxNodes)
       }
     },
     [makeNode],
@@ -175,12 +187,21 @@ function CanvasPlaygroundInner() {
     const container = containerRef.current
     if (!canvas || !container) return
 
-    const ctx = canvas.getContext("2d", { alpha: true })
+    // Enable hardware acceleration and optimize for mobile
+    const ctx = canvas.getContext("2d", {
+      alpha: true,
+      desynchronized: true, // Reduces input latency on mobile
+      willReadFrequently: false,
+    })
     if (!ctx) return
 
     const resize = () => {
       const rect = container.getBoundingClientRect()
-      const DPR = Math.min(window.devicePixelRatio || 1, 2)
+
+      // Optimize DPR for performance on mobile
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      const DPR = Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2)
+
       const W = Math.floor(rect.width)
       const H = Math.floor(rect.height)
 
@@ -192,9 +213,10 @@ function CanvasPlaygroundInner() {
 
       dimensionsRef.current = { W, H }
 
-      // Seed initial constellation
+      // Seed initial constellation with fewer nodes on mobile
       if (nodesRef.current.length === 0) {
-        for (let i = 0; i < 25; i++) {
+        const nodeCount = isMobile ? 15 : 25
+        for (let i = 0; i < nodeCount; i++) {
           nodesRef.current.push(makeNode(Math.random() * W, Math.random() * H, 0, 0, "node"))
         }
       }
@@ -351,17 +373,123 @@ function CanvasPlaygroundInner() {
       setIsRotating(false)
     }
 
+    // Advanced touch gesture handlers for mobile
+    const onTouchStart = (e: TouchEvent) => {
+      const rect = canvas.getBoundingClientRect()
+      touchStateRef.current.touches = Array.from(e.touches).map((t) => ({
+        id: t.identifier,
+        x: t.clientX - rect.left,
+        y: t.clientY - rect.top,
+      }))
+
+      if (e.touches.length === 1) {
+        // Single touch - treat as click
+        onPointerDown(e)
+      } else if (e.touches.length === 2) {
+        // Two-finger gesture - calculate initial distance and angle
+        const [t1, t2] = touchStateRef.current.touches
+        const dx = t2.x - t1.x
+        const dy = t2.y - t1.y
+        touchStateRef.current.lastPinchDistance = Math.sqrt(dx * dx + dy * dy)
+        touchStateRef.current.lastRotationAngle = Math.atan2(dy, dx)
+        setIsRotating(true)
+      }
+    }
+
+    const onTouchMove = (e: TouchEvent) => {
+      const rect = canvas.getBoundingClientRect()
+      const currentTouches = Array.from(e.touches).map((t) => ({
+        id: t.identifier,
+        x: t.clientX - rect.left,
+        y: t.clientY - rect.top,
+      }))
+
+      if (e.touches.length === 1) {
+        // Single touch - treat as drag
+        onPointerMove(e)
+      } else if (e.touches.length === 2) {
+        // Two-finger gestures
+        const [t1, t2] = currentTouches
+        const dx = t2.x - t1.x
+        const dy = t2.y - t1.y
+        const distance = Math.sqrt(dx * dx + dy * dy)
+        const angle = Math.atan2(dy, dx)
+
+        // Pinch to zoom effect (modify scale via rotation)
+        if (touchStateRef.current.lastPinchDistance > 0) {
+          const pinchDelta = distance - touchStateRef.current.lastPinchDistance
+          setRotation3D((prev) => ({
+            ...prev,
+            z: prev.z + pinchDelta * 0.002,
+          }))
+        }
+
+        // Two-finger rotation
+        if (touchStateRef.current.lastRotationAngle !== 0) {
+          const angleDelta = angle - touchStateRef.current.lastRotationAngle
+          setRotation3D((prev) => ({
+            x: prev.x + Math.sin(angleDelta) * 0.5,
+            y: prev.y + Math.cos(angleDelta) * 0.5,
+            z: prev.z,
+          }))
+        }
+
+        touchStateRef.current.lastPinchDistance = distance
+        touchStateRef.current.lastRotationAngle = angle
+      }
+
+      touchStateRef.current.touches = currentTouches
+    }
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 0) {
+        touchStateRef.current.touches = []
+        touchStateRef.current.lastPinchDistance = 0
+        touchStateRef.current.lastRotationAngle = 0
+        setIsRotating(false)
+        onPointerUp(e)
+      } else if (e.touches.length === 1) {
+        // Reset to single touch
+        const rect = canvas.getBoundingClientRect()
+        touchStateRef.current.touches = Array.from(e.touches).map((t) => ({
+          id: t.identifier,
+          x: t.clientX - rect.left,
+          y: t.clientY - rect.top,
+        }))
+        touchStateRef.current.lastPinchDistance = 0
+        touchStateRef.current.lastRotationAngle = 0
+        setIsRotating(false)
+      }
+    }
+
     canvas.addEventListener("mousedown", onPointerDown)
     canvas.addEventListener("mousemove", onPointerMove)
     canvas.addEventListener("mouseup", onPointerUp)
     canvas.addEventListener("mouseleave", onPointerUp)
     canvas.addEventListener("contextmenu", onContextMenu)
-    canvas.addEventListener("touchstart", onPointerDown, { passive: true })
-    canvas.addEventListener("touchmove", onPointerMove, { passive: true })
-    canvas.addEventListener("touchend", onPointerUp)
+    canvas.addEventListener("touchstart", onTouchStart, { passive: true })
+    canvas.addEventListener("touchmove", onTouchMove, { passive: true })
+    canvas.addEventListener("touchend", onTouchEnd)
+    canvas.addEventListener("touchcancel", onTouchEnd)
 
-    // Animation loop
+    // Page visibility optimization
+    let isVisible = true
+    const handleVisibilityChange = () => {
+      isVisible = !document.hidden
+      if (isVisible) {
+        lastTimeRef.current = performance.now()
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+
+    // Animation loop with performance optimizations
     const step = (t: number) => {
+      // Skip rendering if page is hidden
+      if (!isVisible) {
+        frameRef.current = requestAnimationFrame(step)
+        return
+      }
+
       const dt = Math.min(0.05, (t - lastTimeRef.current) / 1000)
       lastTimeRef.current = t
 
@@ -594,14 +722,16 @@ function CanvasPlaygroundInner() {
     return () => {
       cancelAnimationFrame(frameRef.current)
       window.removeEventListener("resize", resize)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
       canvas.removeEventListener("mousedown", onPointerDown)
       canvas.removeEventListener("mousemove", onPointerMove)
       canvas.removeEventListener("mouseup", onPointerUp)
       canvas.removeEventListener("mouseleave", onPointerUp)
       canvas.removeEventListener("contextmenu", onContextMenu)
-      canvas.removeEventListener("touchstart", onPointerDown)
-      canvas.removeEventListener("touchmove", onPointerMove)
-      canvas.removeEventListener("touchend", onPointerUp)
+      canvas.removeEventListener("touchstart", onTouchStart)
+      canvas.removeEventListener("touchmove", onTouchMove)
+      canvas.removeEventListener("touchend", onTouchEnd)
+      canvas.removeEventListener("touchcancel", onTouchEnd)
     }
   }, [makeNode, spawnCluster, spawnConstellation, themeColor, mode, clickCount, currentConstellation, rotation3D, isRotating])
 
@@ -614,7 +744,8 @@ function CanvasPlaygroundInner() {
             Constellation Canvas
           </h3>
           <p className="m-0 mt-1 text-xs text-muted leading-relaxed">
-            Drag slowly to attract • Drag fast to scatter • Right-click + drag to rotate 3D
+            <span className="hidden sm:inline">Drag slowly to attract • Drag fast to scatter • Right-click + drag to rotate 3D</span>
+            <span className="sm:hidden">Tap to spawn • 2 fingers to rotate • Pinch to zoom</span>
           </p>
           <p className="m-0 mt-1 text-xs text-[rgba(127,180,255,0.8)] font-mono">
             Clicks: {clickCount} • Every 5 clicks spawns {CONSTELLATIONS[currentConstellation].name}
@@ -642,7 +773,14 @@ function CanvasPlaygroundInner() {
       <canvas
         ref={canvasRef}
         className="w-full h-[280px] sm:h-[360px] rounded-xl cursor-crosshair touch-none"
-        style={{ background: "rgba(5, 8, 20, 0.5)" }}
+        style={{
+          background: "rgba(5, 8, 20, 0.5)",
+          willChange: "transform",
+          transform: "translateZ(0)",
+          maxWidth: "100%",
+          maxHeight: "100vh",
+          objectFit: "contain",
+        }}
       />
     </section>
   )
