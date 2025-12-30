@@ -1,6 +1,6 @@
 "use client"
 
-import { memo, useRef, useEffect, useCallback, useImperativeHandle, forwardRef, useState } from "react"
+import { memo, useRef, useEffect, useCallback, useState } from "react"
 import { useApp } from "./app-provider"
 
 interface PlaygroundNode {
@@ -10,21 +10,69 @@ interface PlaygroundNode {
   vy: number
   r: number
   life: number
-  kind: "node" | "spark" | "trail"
+  kind: "node" | "spark" | "trail" | "constellation"
   hue: number
   age: number
-  colorTheme: string
-  constellationId?: number // Track which constellation this node belongs to
-  phase?: number // For algorithmic movement
+  constellationId?: string
 }
 
-const COLOR_THEMES: Record<string, [number, number, number]> = {
-  red: [255, 93, 125],
-  green: [93, 255, 125],
-  blue: [127, 180, 255],
-  gold: [255, 215, 0],
-  current: [127, 180, 255], // Will be set dynamically
+// Real constellation data (normalized coordinates 0-1)
+interface Constellation {
+  name: string
+  stars: { x: number; y: number; magnitude?: number }[]
+  connections: [number, number][]
 }
+
+const CONSTELLATIONS: Constellation[] = [
+  {
+    name: "Orion",
+    stars: [
+      { x: 0.45, y: 0.3, magnitude: 0.5 }, // Betelgeuse
+      { x: 0.55, y: 0.7, magnitude: 0.3 }, // Rigel
+      { x: 0.48, y: 0.5, magnitude: 0.8 }, // Belt star 1
+      { x: 0.5, y: 0.5, magnitude: 0.8 }, // Belt star 2
+      { x: 0.52, y: 0.5, magnitude: 0.8 }, // Belt star 3
+      { x: 0.42, y: 0.4, magnitude: 0.7 }, // Shoulder
+      { x: 0.58, y: 0.4, magnitude: 0.7 }, // Shoulder
+    ],
+    connections: [[0, 5], [5, 2], [2, 3], [3, 4], [4, 6], [6, 1], [2, 1]],
+  },
+  {
+    name: "Ursa Major",
+    stars: [
+      { x: 0.3, y: 0.4, magnitude: 0.6 },
+      { x: 0.35, y: 0.35, magnitude: 0.6 },
+      { x: 0.4, y: 0.35, magnitude: 0.6 },
+      { x: 0.45, y: 0.4, magnitude: 0.6 },
+      { x: 0.42, y: 0.5, magnitude: 0.5 },
+      { x: 0.35, y: 0.5, magnitude: 0.5 },
+      { x: 0.32, y: 0.55, magnitude: 0.5 },
+    ],
+    connections: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 0]],
+  },
+  {
+    name: "Cassiopeia",
+    stars: [
+      { x: 0.4, y: 0.3, magnitude: 0.6 },
+      { x: 0.45, y: 0.25, magnitude: 0.6 },
+      { x: 0.5, y: 0.3, magnitude: 0.7 },
+      { x: 0.55, y: 0.25, magnitude: 0.6 },
+      { x: 0.6, y: 0.3, magnitude: 0.6 },
+    ],
+    connections: [[0, 1], [1, 2], [2, 3], [3, 4]],
+  },
+  {
+    name: "Cygnus",
+    stars: [
+      { x: 0.5, y: 0.2, magnitude: 0.5 }, // Deneb
+      { x: 0.5, y: 0.5, magnitude: 0.6 }, // Center
+      { x: 0.4, y: 0.55, magnitude: 0.7 }, // Wing
+      { x: 0.6, y: 0.55, magnitude: 0.7 }, // Wing
+      { x: 0.5, y: 0.7, magnitude: 0.6 }, // Tail
+    ],
+    connections: [[0, 1], [1, 2], [1, 3], [1, 4]],
+  },
+]
 
 const THEME_COLORS: Record<string, [number, number, number]> = {
   sovereign: [127, 180, 255],
@@ -73,7 +121,21 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
   const constellationIdRef = useRef(0)
   const [selectedColor, setSelectedColor] = useState<string>("current")
 
-  const { mode, theme, sealPulse, burst, toggleMode, pulseSeal, spawnBurst, setTheme } = useApp()
+  // New state for interactivity features
+  const [clickCount, setClickCount] = useState(0)
+  const [rotation3D, setRotation3D] = useState({ x: 0, y: 0, z: 0 })
+  const [isRotating, setIsRotating] = useState(false)
+  const [currentConstellation, setCurrentConstellation] = useState(0)
+  const rotationStartRef = useRef({ x: 0, y: 0 })
+
+  // Mobile gesture tracking
+  const touchStateRef = useRef({
+    touches: [] as { id: number; x: number; y: number }[],
+    lastPinchDistance: 0,
+    lastRotationAngle: 0,
+  })
+
+  const { mode, theme, toggleMode, pulseSeal, spawnBurst } = useApp()
 
   // Update current color theme based on app theme
   useEffect(() => {
@@ -168,43 +230,45 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
 
   const spawnCluster = useCallback(
     (x: number, y: number, count: number, vx = 0, vy = 0) => {
-      const maxSparks = MAX_SPARKS
-      const currentSparks = nodesRef.current.filter((n) => n.kind === "spark").length
-      const availableSlots = Math.max(0, maxSparks - currentSparks)
-      const spawnCount = Math.min(count, availableSlots)
+      // Reduce particle count on mobile for performance
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
+      const adjustedCount = isMobile ? Math.floor(count * 0.6) : count
 
-      for (let i = 0; i < spawnCount; i++) {
-        const angle = (Math.PI * 2 * i) / spawnCount + Math.random() * 0.4
-        const dist = 8 + Math.random() * 20
+      for (let i = 0; i < adjustedCount; i++) {
+        const angle = (Math.PI * 2 * i) / adjustedCount + Math.random() * 0.5
+        const dist = 10 + Math.random() * 30
         const nx = x + Math.cos(angle) * dist
         const ny = y + Math.sin(angle) * dist
         nodesRef.current.push(
           makeNode(nx, ny, vx * 0.25 + Math.cos(angle) * 0.4, vy * 0.25 + Math.sin(angle) * 0.4, "spark", selectedColor),
         )
       }
-
-      // Enforce limits
-      const nodes = nodesRef.current
-      const sparks = nodes.filter((n) => n.kind === "spark")
-      const trails = nodes.filter((n) => n.kind === "trail")
-
-      if (sparks.length > MAX_SPARKS) {
-        sparks.splice(MAX_SPARKS)
-      }
-      if (trails.length > MAX_TRAILS) {
-        trails.splice(MAX_TRAILS)
-      }
-      if (nodes.length > MAX_NODES) {
-        let toRemove = nodes.length - MAX_NODES
-        for (let i = nodes.length - 1; i >= 0 && toRemove > 0; i--) {
-          if (nodes[i].kind !== "node") {
-            nodes.splice(i, 1)
-            toRemove--
-          }
-        }
+      // Cap nodes - lower limit on mobile
+      const maxNodes = isMobile ? 150 : 300
+      if (nodesRef.current.length > maxNodes) {
+        nodesRef.current.splice(0, nodesRef.current.length - maxNodes)
       }
     },
     [makeNode, selectedColor],
+  )
+
+  const spawnConstellation = useCallback(
+    (constellationIndex: number, centerX: number, centerY: number, scale = 100) => {
+      const constellation = CONSTELLATIONS[constellationIndex]
+      const constellationId = `${constellation.name}-${Date.now()}`
+
+      constellation.stars.forEach((star) => {
+        const x = centerX + (star.x - 0.5) * scale
+        const y = centerY + (star.y - 0.5) * scale
+        const magnitude = star.magnitude || 0.5
+        const node = makeNode(x, y, 0, 0, "node")
+        node.kind = "constellation"
+        node.constellationId = constellationId
+        node.r = 2 + magnitude * 2
+        nodesRef.current.push(node)
+      })
+    },
+    [makeNode],
   )
 
   useEffect(() => {
@@ -212,18 +276,23 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
     const container = containerRef.current
     if (!canvas || !container) return
 
-    const ctx = canvas.getContext("2d", { alpha: true })
+    // Enable hardware acceleration and optimize for mobile
+    const ctx = canvas.getContext("2d", {
+      alpha: true,
+      desynchronized: true, // Reduces input latency on mobile
+      willReadFrequently: false,
+    })
     if (!ctx) return
 
     const resize = () => {
       const rect = container.getBoundingClientRect()
-      const isMobile = window.innerWidth < 768
+
+      // Optimize DPR for performance on mobile
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
       const DPR = Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2)
 
-      const maxW = window.innerWidth
-      const maxH = Math.min(window.innerHeight * 0.6, 600)
-      const W = Math.floor(Math.min(rect.width, maxW))
-      const H = Math.floor(Math.min(rect.height, maxH))
+      const W = Math.floor(rect.width)
+      const H = Math.floor(rect.height)
 
       canvas.width = Math.floor(W * DPR)
       canvas.height = Math.floor(H * DPR)
@@ -233,8 +302,12 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
 
       dimensionsRef.current = { W, H }
 
+      // Seed initial constellation with fewer nodes on mobile
       if (nodesRef.current.length === 0) {
-        resetConstellation()
+        const nodeCount = isMobile ? 15 : 25
+        for (let i = 0; i < nodeCount; i++) {
+          nodesRef.current.push(makeNode(Math.random() * W, Math.random() * H, 0, 0, "node"))
+        }
       }
     }
 
@@ -270,38 +343,39 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
       pointerRef.current.velocity = { x: 0, y: 0 }
       pointerRef.current.trail = []
 
-      if ("touches" in e && e.touches.length === 2) {
-        // Pinch gesture
-        pointerRef.current.isPinching = true
-        pointerRef.current.pinchDistance = getDistance(e.touches[0], e.touches[1])
-        pointerRef.current.pinchStart = pointerRef.current.pinchDistance
-        pointerRef.current.touchIds = [e.touches[0].identifier, e.touches[1].identifier]
+      // Increment click count
+      setClickCount((prev) => prev + 1)
+
+      // Every 5 clicks, spawn a constellation
+      if ((clickCount + 1) % 5 === 0) {
+        spawnConstellation(currentConstellation, coords.x, coords.y, 120)
+        setCurrentConstellation((prev) => (prev + 1) % CONSTELLATIONS.length)
       } else {
-        spawnCluster(coords.x, coords.y, 6)
+        // Spawn initial burst on click
+        spawnCluster(coords.x, coords.y, 8)
       }
+    }
+
+    const onContextMenu = (e: MouseEvent) => {
+      e.preventDefault()
+      const coords = getCanvasCoords(e)
+      rotationStartRef.current = { x: coords.x, y: coords.y }
+      setIsRotating(true)
     }
 
     const onPointerMove = (e: MouseEvent | TouchEvent) => {
       const coords = getCanvasCoords(e)
 
-      if ("touches" in e && e.touches.length === 2 && pointerRef.current.isPinching) {
-        // Handle pinch zoom
-        const currentDistance = getDistance(e.touches[0], e.touches[1])
-        const scale = currentDistance / pointerRef.current.pinchStart
-        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - canvas.getBoundingClientRect().left
-        const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - canvas.getBoundingClientRect().top
-
-        // Apply scale to nodes
-        const nodes = nodesRef.current
-        for (let i = 0; i < nodes.length; i++) {
-          const n = nodes[i]
-          const dx = n.x - centerX
-          const dy = n.y - centerY
-          n.x = centerX + dx * scale
-          n.y = centerY + dy * scale
-        }
-
-        pointerRef.current.pinchStart = currentDistance
+      // Handle 3D rotation
+      if (isRotating && e instanceof MouseEvent) {
+        const dx = coords.x - rotationStartRef.current.x
+        const dy = coords.y - rotationStartRef.current.y
+        setRotation3D((prev) => ({
+          x: prev.x + dy * 0.01,
+          y: prev.y + dx * 0.01,
+          z: prev.z,
+        }))
+        rotationStartRef.current = { x: coords.x, y: coords.y }
         return
       }
 
@@ -396,19 +470,126 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
         }
       }
       pointerRef.current.down = false
+      setIsRotating(false)
+    }
+
+    // Advanced touch gesture handlers for mobile
+    const onTouchStart = (e: TouchEvent) => {
+      const rect = canvas.getBoundingClientRect()
+      touchStateRef.current.touches = Array.from(e.touches).map((t) => ({
+        id: t.identifier,
+        x: t.clientX - rect.left,
+        y: t.clientY - rect.top,
+      }))
+
+      if (e.touches.length === 1) {
+        // Single touch - treat as click
+        onPointerDown(e)
+      } else if (e.touches.length === 2) {
+        // Two-finger gesture - calculate initial distance and angle
+        const [t1, t2] = touchStateRef.current.touches
+        const dx = t2.x - t1.x
+        const dy = t2.y - t1.y
+        touchStateRef.current.lastPinchDistance = Math.sqrt(dx * dx + dy * dy)
+        touchStateRef.current.lastRotationAngle = Math.atan2(dy, dx)
+        setIsRotating(true)
+      }
+    }
+
+    const onTouchMove = (e: TouchEvent) => {
+      const rect = canvas.getBoundingClientRect()
+      const currentTouches = Array.from(e.touches).map((t) => ({
+        id: t.identifier,
+        x: t.clientX - rect.left,
+        y: t.clientY - rect.top,
+      }))
+
+      if (e.touches.length === 1) {
+        // Single touch - treat as drag
+        onPointerMove(e)
+      } else if (e.touches.length === 2) {
+        // Two-finger gestures
+        const [t1, t2] = currentTouches
+        const dx = t2.x - t1.x
+        const dy = t2.y - t1.y
+        const distance = Math.sqrt(dx * dx + dy * dy)
+        const angle = Math.atan2(dy, dx)
+
+        // Pinch to zoom effect (modify scale via rotation)
+        if (touchStateRef.current.lastPinchDistance > 0) {
+          const pinchDelta = distance - touchStateRef.current.lastPinchDistance
+          setRotation3D((prev) => ({
+            ...prev,
+            z: prev.z + pinchDelta * 0.002,
+          }))
+        }
+
+        // Two-finger rotation
+        if (touchStateRef.current.lastRotationAngle !== 0) {
+          const angleDelta = angle - touchStateRef.current.lastRotationAngle
+          setRotation3D((prev) => ({
+            x: prev.x + Math.sin(angleDelta) * 0.5,
+            y: prev.y + Math.cos(angleDelta) * 0.5,
+            z: prev.z,
+          }))
+        }
+
+        touchStateRef.current.lastPinchDistance = distance
+        touchStateRef.current.lastRotationAngle = angle
+      }
+
+      touchStateRef.current.touches = currentTouches
+    }
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length === 0) {
+        touchStateRef.current.touches = []
+        touchStateRef.current.lastPinchDistance = 0
+        touchStateRef.current.lastRotationAngle = 0
+        setIsRotating(false)
+        onPointerUp(e)
+      } else if (e.touches.length === 1) {
+        // Reset to single touch
+        const rect = canvas.getBoundingClientRect()
+        touchStateRef.current.touches = Array.from(e.touches).map((t) => ({
+          id: t.identifier,
+          x: t.clientX - rect.left,
+          y: t.clientY - rect.top,
+        }))
+        touchStateRef.current.lastPinchDistance = 0
+        touchStateRef.current.lastRotationAngle = 0
+        setIsRotating(false)
+      }
     }
 
     canvas.addEventListener("mousedown", onPointerDown)
     canvas.addEventListener("mousemove", onPointerMove)
     canvas.addEventListener("mouseup", onPointerUp)
     canvas.addEventListener("mouseleave", onPointerUp)
-    canvas.addEventListener("touchstart", onPointerDown, { passive: true })
-    canvas.addEventListener("touchmove", onPointerMove, { passive: true })
-    canvas.addEventListener("touchend", onPointerUp)
-    canvas.addEventListener("touchcancel", onPointerUp)
+    canvas.addEventListener("contextmenu", onContextMenu)
+    canvas.addEventListener("touchstart", onTouchStart, { passive: true })
+    canvas.addEventListener("touchmove", onTouchMove, { passive: true })
+    canvas.addEventListener("touchend", onTouchEnd)
+    canvas.addEventListener("touchcancel", onTouchEnd)
 
-    // Enhanced animation loop with algorithmic patterns
+    // Page visibility optimization
+    let isVisible = true
+    const handleVisibilityChange = () => {
+      isVisible = !document.hidden
+      if (isVisible) {
+        lastTimeRef.current = performance.now()
+      }
+    }
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+
+    // Animation loop with performance optimizations
     const step = (t: number) => {
+      // Skip rendering if page is hidden
+      if (!isVisible) {
+        frameRef.current = requestAnimationFrame(step)
+        return
+      }
+
       const dt = Math.min(0.05, (t - lastTimeRef.current) / 1000)
       lastTimeRef.current = t
 
@@ -421,6 +602,21 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
       ctx.clearRect(0, 0, W, H)
       ctx.fillStyle = "rgba(5, 8, 20, 0.3)"
       ctx.fillRect(0, 0, W, H)
+
+      // Apply 3D rotation transforms
+      ctx.save()
+      ctx.translate(W / 2, H / 2)
+
+      // Simple 3D projection
+      const cosX = Math.cos(rotation3D.x)
+      const sinX = Math.sin(rotation3D.x)
+      const cosY = Math.cos(rotation3D.y)
+      const sinY = Math.sin(rotation3D.y)
+
+      // Apply rotation matrix (simplified 3D to 2D projection)
+      const scale = 0.5 + 0.5 * cosX
+      ctx.scale(scale * cosY, scale)
+      ctx.translate(-W / 2, -H / 2)
 
       const nodes = nodesRef.current
       const isLive = mode === "live"
@@ -586,19 +782,48 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
         }
       }
 
-      // Draw connections with color themes
-      connectionFrameRef.current++
-      if (connectionFrameRef.current % 1 === 0) {
-        ctx.lineWidth = 1
-        const maxDistSq = effectiveMaxDist * effectiveMaxDist
+      // Draw constellation connections first
+      const constellationNodes = new Map<string, PlaygroundNode[]>()
+      nodes.forEach((node) => {
+        if (node.kind === "constellation" && node.constellationId) {
+          if (!constellationNodes.has(node.constellationId)) {
+            constellationNodes.set(node.constellationId, [])
+          }
+          constellationNodes.get(node.constellationId)!.push(node)
+        }
+      })
 
-        for (let i = 0; i < nodes.length; i += 1) {
-          const a = nodes[i]
-          if (a.kind === "trail") continue
+      constellationNodes.forEach((constNodes, constellationId) => {
+        const constellationName = constellationId.split("-")[0]
+        const constellation = CONSTELLATIONS.find((c) => c.name === constellationName)
+        if (!constellation) return
 
-          for (let j = i + 1; j < nodes.length; j += 1) {
-            const b = nodes[j]
-            if (b.kind === "trail") continue
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.6)`
+        ctx.lineWidth = 2
+
+        constellation.connections.forEach(([startIdx, endIdx]) => {
+          if (startIdx < constNodes.length && endIdx < constNodes.length) {
+            const start = constNodes[startIdx]
+            const end = constNodes[endIdx]
+            ctx.beginPath()
+            ctx.moveTo(start.x, start.y)
+            ctx.lineTo(end.x, end.y)
+            ctx.stroke()
+          }
+        })
+      })
+
+      // Draw connections with glow effect
+      let linkCount = 0
+      ctx.lineWidth = 1
+
+      for (let i = 0; i < nodes.length; i++) {
+        const a = nodes[i]
+        if (a.kind === "trail" || a.kind === "constellation") continue
+
+        for (let j = i + 1; j < nodes.length; j++) {
+          const b = nodes[j]
+          if (b.kind === "trail" || b.kind === "constellation") continue
 
             const dx = a.x - b.x
             const dy = a.y - b.y
@@ -690,6 +915,9 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
         ctx.fill()
       }
 
+      // Restore canvas state after 3D transforms
+      ctx.restore()
+
       frameRef.current = requestAnimationFrame(step)
     }
 
@@ -699,18 +927,18 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
       cancelAnimationFrame(frameRef.current)
       resizeObserver.disconnect()
       window.removeEventListener("resize", resize)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
       canvas.removeEventListener("mousedown", onPointerDown)
       canvas.removeEventListener("mousemove", onPointerMove)
       canvas.removeEventListener("mouseup", onPointerUp)
       canvas.removeEventListener("mouseleave", onPointerUp)
-      canvas.removeEventListener("touchstart", onPointerDown)
-      canvas.removeEventListener("touchmove", onPointerMove)
-      canvas.removeEventListener("touchend", onPointerUp)
-      canvas.removeEventListener("touchcancel", onPointerUp)
+      canvas.removeEventListener("contextmenu", onContextMenu)
+      canvas.removeEventListener("touchstart", onTouchStart)
+      canvas.removeEventListener("touchmove", onTouchMove)
+      canvas.removeEventListener("touchend", onTouchEnd)
+      canvas.removeEventListener("touchcancel", onTouchEnd)
     }
-  }, [makeNode, spawnCluster, mode, sealPulse, burst, selectedColor, getColorForTheme, resetConstellation, dropConstellation])
-
-  const colorOptions = ["red", "green", "blue", "gold", "current"]
+  }, [makeNode, spawnCluster, spawnConstellation, themeColor, mode, clickCount, currentConstellation, rotation3D, isRotating])
 
   return (
     <section className="panel relative" ref={containerRef}>
@@ -721,7 +949,11 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
             Constellation Canvas
           </h3>
           <p className="m-0 mt-1 text-xs text-muted leading-relaxed">
-            Drag slowly to attract • Drag fast to scatter • Click to spawn • Pinch to zoom
+            <span className="hidden sm:inline">Drag slowly to attract • Drag fast to scatter • Right-click + drag to rotate 3D</span>
+            <span className="sm:hidden">Tap to spawn • 2 fingers to rotate • Pinch to zoom</span>
+          </p>
+          <p className="m-0 mt-1 text-xs text-[rgba(127,180,255,0.8)] font-mono">
+            Clicks: {clickCount} • Every 5 clicks spawns {CONSTELLATIONS[currentConstellation].name}
           </p>
         </div>
         <div className="flex gap-2 flex-wrap items-center">
@@ -760,15 +992,25 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
           <button onClick={spawnBurst} className="btn alt text-[11px] px-3 py-2">
             Burst
           </button>
+          <button
+            onClick={() => setClickCount(0)}
+            className="btn alt text-[11px] px-3 py-2"
+            title="Reset click counter"
+          >
+            Reset Clicks
+          </button>
         </div>
       </div>
       <canvas
         ref={canvasRef}
-        className="w-full rounded-xl cursor-crosshair touch-none"
+        className="w-full h-[280px] sm:h-[360px] rounded-xl cursor-crosshair touch-none"
         style={{
           background: "rgba(5, 8, 20, 0.5)",
-          height: "min(60vh, 600px)",
-          maxHeight: "600px",
+          willChange: "transform",
+          transform: "translateZ(0)",
+          maxWidth: "100%",
+          maxHeight: "100vh",
+          objectFit: "contain",
         }}
       />
     </section>

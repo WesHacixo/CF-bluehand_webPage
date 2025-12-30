@@ -238,8 +238,8 @@ Configuration: 3/3 ✓
 
 ```bash
 # Method 1: CLI deployment
-wrangler login
-wrangler pages deploy ./ --project-name=bluehand-solutions
+bunx wrangler login
+bunx wrangler pages deploy ./ --project-name=bluehand-solutions --commit-dirty=true
 
 # Method 2: Git integration
 git add .
