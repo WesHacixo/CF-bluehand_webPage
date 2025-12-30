@@ -29,12 +29,21 @@ This repository uses a multi-branch strategy to manage different deployment targ
 - New features and improvements
 - Testing and iteration
 
+### `Cloudflare-pr0`
+**Purpose**: Production deployment branch for Cloudflare Pages  
+**Status**: **DO NOT MODIFY DIRECTLY** - This is what's deployed to Cloudflare  
+**Contains**:
+- Production-ready static HTML
+- Cloudflare-specific configuration
+- Exact state of what's live in production
+
 ### `cloudflare-dev`
 **Purpose**: Development branch for Cloudflare static site  
 **Status**: Active development  
 **Contains**:
 - Latest Cloudflare static HTML optimizations
 - Cloudflare-specific features
+- Testing and iteration
 
 ## Workflow
 
@@ -52,7 +61,13 @@ This repository uses a multi-branch strategy to manage different deployment targ
 ### For Cloudflare Development:
 1. Work on `cloudflare-dev` branch
 2. Test locally
-3. When ready, deploy manually or merge to a Cloudflare production branch
+3. When ready for production:
+   ```bash
+   git checkout Cloudflare-pr0
+   git merge cloudflare-dev
+   git push origin Cloudflare-pr0
+   ```
+4. Cloudflare Pages will auto-deploy from `Cloudflare-pr0` (if connected)
 
 ### For Documentation/Architecture:
 1. Update `main` branch
@@ -60,17 +75,19 @@ This repository uses a multi-branch strategy to manage different deployment targ
 
 ## Important Notes
 
-- **Never commit directly to `Vercel-pr0`** - it should only be updated via merge from `vercel-dev`
-- `Vercel-pr0` should always reflect what's actually deployed to production
+- **Never commit directly to `Vercel-pr0` or `Cloudflare-pr0`** - they should only be updated via merge from their respective dev branches
+- Production branches should always reflect what's actually deployed
 - Use `main` for cross-cutting concerns and documentation
 - Each deployment target has its own dev branch for isolation
 
 ## Current Production State
 
-The production deployment at `attest.blue-hand.org` includes:
-- Static assets in `/images/` (bluehand-orb-logo.png, hamsa-cyan.png)
-- Next.js ISR pages
-- API routes (/api/brief, /api/health)
-- Various static assets and chunks
+### Vercel Production
+- **Branch**: `Vercel-pr0`
+- **URL**: https://attest.blue-hand.org
+- **Status**: Contains production build from bluehand-solutions-website.zip
 
-These assets may differ from the development branches.
+### Cloudflare Production
+- **Branch**: `Cloudflare-pr0`
+- **URL**: (Check your Cloudflare dashboard for the deployed URL)
+- **Status**: Contains static HTML version currently deployed
