@@ -735,29 +735,10 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
       centerY: number,
       scale = 100,
     ) => {
-      const constellation = CONSTELLATIONS[constellationIndex];
-      const constellationId = constellationIdRef.current++;
-
-      constellation.stars.forEach((star, starIndex) => {
-        const x = centerX + (star.x - 0.5) * scale;
-        const y = centerY + (star.y - 0.5) * scale;
-        const magnitude = star.magnitude || 0.5;
-        const node = makeNode(
-          x,
-          y,
-          0,
-          0,
-          "constellation",
-          selectedColor,
-          constellationId,
-        );
-        node.r = 2 + magnitude * 2;
-        node.constellationIndex = constellationIndex; // Store index for connection rendering
-        node.starIndex = starIndex; // Store star index for connection mapping
-        nodesRef.current.push(node);
-      });
+      // Use dropConstellation to spawn swaths instead of single constellation
+      dropConstellation(centerX, centerY);
     },
-    [makeNode, selectedColor],
+    [dropConstellation],
   );
 
   useEffect(() => {
