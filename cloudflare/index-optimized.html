@@ -389,6 +389,23 @@
       opacity:0.9;
     }
 
+    .skip-link{
+      position:absolute;
+      left:-999px;
+      top:10px;
+      background: #0a122d;
+      color:#eaf0ff;
+      padding:10px 14px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.18);
+      box-shadow:0 10px 30px rgba(0,0,0,0.35);
+      text-decoration:none;
+      z-index:10;
+    }
+    .skip-link:focus-visible{
+      left:14px;
+    }
+
     #overlay{
       position:fixed; inset:0; z-index:5; display:none;
       background: rgba(0,0,0,0.55); backdrop-filter: blur(10px);
@@ -413,6 +430,7 @@
   <canvas id="bg" aria-hidden="true"></canvas>
 
   <div class="shell">
+    <a class="skip-link" href="#main">Skip to main content</a>
     <header>
       <div class="brand" aria-label="Bluehand brand">
         <div class="mark" aria-hidden="true"></div>
@@ -430,7 +448,7 @@
       </nav>
     </header>
 
-    <main>
+    <main id="main">
       <section class="panel hero" id="work">
         <div class="fade" aria-hidden="true"></div>
         <h2>Private Intelligence.<br>Elegant Systems.</h2>
