@@ -19,6 +19,9 @@
   
   # Cache control for HTML (revalidate on every request)
   Cache-Control: public, max-age=0, must-revalidate
+  
+  # Allow search engine indexing
+  X-Robots-Tag: index, follow
 
 /index.html
   # Additional cache control for main page

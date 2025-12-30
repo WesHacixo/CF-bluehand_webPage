@@ -34,6 +34,20 @@ const POINTER_THROTTLE_MS = 16
 const DAMPING = 0.985
 const POINTER_DAMPING = 0.86
 
+interface GridPlane {
+  z: number
+  rotation: number
+  opacity: number
+  speed: number
+}
+
+interface CircuitTrace {
+  points: { x: number; y: number }[]
+  progress: number
+  speed: number
+  hue: number
+}
+
 function CanvasBackgroundInner() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const nodesRef = useRef<Node[]>([])
@@ -42,10 +56,13 @@ function CanvasBackgroundInner() {
   const dimensionsRef = useRef({ W: 0, H: 0, DPR: 1 })
   const frameRef = useRef<number>(0)
   const isVisibleRef = useRef(true)
+  const gridPlanesRef = useRef<GridPlane[]>([])
+  const circuitTracesRef = useRef<CircuitTrace[]>([])
 
   const {
     mode,
     theme,
+    backgroundTheme,
     sealPulse,
     burst,
     updateStats,
@@ -72,6 +89,43 @@ function CanvasBackgroundInner() {
     }
   }, [])
 
+  const initGridPlanes = useCallback(() => {
+    gridPlanesRef.current = Array.from({ length: 6 }, (_, i) => ({
+      z: i * 150 - 300,
+      rotation: Math.random() * Math.PI * 2,
+      opacity: 0.15 + Math.random() * 0.2,
+      speed: 0.3 + Math.random() * 0.2,
+    }))
+  }, [])
+
+  const initCircuitTraces = useCallback(() => {
+    const { W, H } = dimensionsRef.current
+    circuitTracesRef.current = Array.from({ length: 20 }, () => {
+      const startX = Math.random() < 0.5 ? 0 : W
+      const startY = Math.random() * H
+      const points: { x: number; y: number }[] = [{ x: startX, y: startY }]
+
+      let x = startX
+      let y = startY
+      const segments = 5 + Math.floor(Math.random() * 8)
+
+      for (let i = 0; i < segments; i++) {
+        const dx = (Math.random() - 0.5) * 100
+        const dy = (Math.random() - 0.5) * 100
+        x += dx
+        y += dy
+        points.push({ x, y })
+      }
+
+      return {
+        points,
+        progress: Math.random(),
+        speed: 0.1 + Math.random() * 0.2,
+        hue: Math.random() * 60 - 30,
+      }
+    })
+  }, [])
+
   const resize = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
@@ -96,7 +150,140 @@ function CanvasBackgroundInner() {
     const baseCount = Math.floor((W * H) / (isMobile ? 28000 : 22000))
     const nodeCount = Math.max(24, Math.min(isMobile ? 60 : 100, baseCount))
     nodesRef.current = Array.from({ length: nodeCount }, () => makeNode())
-  }, [makeNode])
+
+    initGridPlanes()
+    initCircuitTraces()
+  }, [makeNode, initGridPlanes, initCircuitTraces])
+
+  const drawWireframeTheme = useCallback(
+    (ctx: CanvasRenderingContext2D, t: number, W: number, H: number, scroll: number, pulse: number) => {
+      const planes = gridPlanesRef.current
+      const [r, g, b] = themeColor
+
+      planes.forEach((plane) => {
+        plane.z += plane.speed
+        if (plane.z > 300) plane.z = -300
+
+        const scale = 1 + (plane.z + 300) / 600
+        const alpha = plane.opacity * (1 - Math.abs(plane.z) / 400) * (0.8 + pulse * 0.4)
+
+        ctx.save()
+        ctx.translate(W / 2, H / 2 + scroll * 100)
+        ctx.scale(scale, scale)
+        ctx.rotate(plane.rotation + t * 0.0001)
+
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`
+        ctx.lineWidth = 1
+
+        const gridSize = 40
+        const gridCount = 12
+        for (let i = -gridCount; i <= gridCount; i++) {
+          ctx.beginPath()
+          ctx.moveTo(i * gridSize, -gridCount * gridSize)
+          ctx.lineTo(i * gridSize, gridCount * gridSize)
+          ctx.stroke()
+
+          ctx.beginPath()
+          ctx.moveTo(-gridCount * gridSize, i * gridSize)
+          ctx.lineTo(gridCount * gridSize, i * gridSize)
+          ctx.stroke()
+        }
+
+        ctx.restore()
+      })
+
+      const centerX = W / 2
+      const centerY = H / 2
+      const rings = 8
+      for (let i = 0; i < rings; i++) {
+        const radius = 50 + i * 30 + pulse * 40
+        const alpha = (1 - i / rings) * 0.12
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
+        ctx.stroke()
+      }
+    },
+    [themeColor],
+  )
+
+  const drawCircuitTheme = useCallback(
+    (ctx: CanvasRenderingContext2D, t: number, W: number, H: number, scroll: number, pulse: number) => {
+      const [r, g, b] = themeColor
+      const traces = circuitTracesRef.current
+
+      traces.forEach((trace) => {
+        trace.progress += trace.speed * 0.01
+        if (trace.progress > 1) trace.progress = 0
+
+        const visiblePoints = Math.floor(trace.points.length * trace.progress)
+
+        ctx.strokeStyle = `rgba(${r + trace.hue}, ${g}, ${b}, 0.3)`
+        ctx.lineWidth = 1.5
+        ctx.beginPath()
+        if (visiblePoints > 0) {
+          ctx.moveTo(trace.points[0].x, trace.points[0].y)
+          for (let i = 1; i < visiblePoints; i++) {
+            ctx.lineTo(trace.points[i].x, trace.points[i].y)
+          }
+          ctx.stroke()
+        }
+
+        if (visiblePoints > 0 && visiblePoints < trace.points.length) {
+          const point = trace.points[visiblePoints]
+          const gradient = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, 8)
+          gradient.addColorStop(0, `rgba(${r + trace.hue}, ${g + 20}, ${b + 20}, 0.8)`)
+          gradient.addColorStop(1, `rgba(${r + trace.hue}, ${g}, ${b}, 0)`)
+          ctx.fillStyle = gradient
+          ctx.beginPath()
+          ctx.arc(point.x, point.y, 8, 0, Math.PI * 2)
+          ctx.fill()
+        }
+      })
+
+      const cx = W / 2
+      const cy = H / 2.5 + scroll * 80
+      const handScale = 1 + pulse * 0.15
+
+      ctx.save()
+      ctx.translate(cx, cy)
+      ctx.scale(handScale, handScale)
+
+      ctx.strokeStyle = `rgba(${r}, ${g + 20}, ${b + 40}, ${0.4 + pulse * 0.3})`
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(0, -60)
+      ctx.lineTo(30, -50)
+      ctx.lineTo(35, -20)
+      ctx.lineTo(30, 40)
+      ctx.lineTo(0, 50)
+      ctx.lineTo(-30, 40)
+      ctx.lineTo(-35, -20)
+      ctx.lineTo(-30, -50)
+      ctx.closePath()
+      ctx.stroke()
+
+      const geomRadius = 12
+      const geomAlpha = 0.5 + pulse * 0.4
+      ctx.strokeStyle = `rgba(${255 - r * 0.3}, ${100}, ${125}, ${geomAlpha})`
+      ctx.lineWidth = 1.5
+      for (let i = 0; i < 6; i++) {
+        const angle = (i * Math.PI) / 3
+        const ox = Math.cos(angle) * geomRadius
+        const oy = Math.sin(angle) * geomRadius
+        ctx.beginPath()
+        ctx.arc(ox, oy, geomRadius, 0, Math.PI * 2)
+        ctx.stroke()
+      }
+      ctx.beginPath()
+      ctx.arc(0, 0, geomRadius, 0, Math.PI * 2)
+      ctx.stroke()
+
+      ctx.restore()
+    },
+    [themeColor],
+  )
 
   useEffect(() => {
     if (burst > 0.8) {
@@ -149,7 +336,6 @@ function CanvasBackgroundInner() {
           const distY = n.y - clientY
           const distSq = distX * distX + distY * distY
           if (distSq < 48400) {
-            // 220^2
             n.vx += dx * 0.0007
             n.vy += dy * 0.0007
           }
@@ -210,10 +396,10 @@ function CanvasBackgroundInner() {
     window.addEventListener("keydown", onKeyDown)
     document.addEventListener("visibilitychange", onVisibilityChange)
 
-    // Store refs for animation loop
     const modeRef = { current: mode }
     const sealPulseRef = { current: sealPulse }
     const themeColorRef = { current: themeColor }
+    const backgroundThemeRef = { current: backgroundTheme }
 
     const step = (t: number) => {
       if (!isVisibleRef.current) {
@@ -234,6 +420,8 @@ function CanvasBackgroundInner() {
 
       const scroll = stateRef.current.scroll
       const depth = 0.18 + scroll * 0.22
+      const currentPulse = sealPulseRef.current
+      const currentBgTheme = backgroundThemeRef.current
 
       const vg = ctx.createRadialGradient(W * 0.45, H * 0.22, 40, W * 0.5, H * 0.52, Math.max(W, H) * 0.85)
       vg.addColorStop(0, `rgba(127,180,255,${0.1 + depth * 0.06})`)
@@ -241,6 +429,14 @@ function CanvasBackgroundInner() {
       vg.addColorStop(1, "rgba(0,0,0,0)")
       ctx.fillStyle = vg
       ctx.fillRect(0, 0, W, H)
+
+      if (currentBgTheme === "wireframe") {
+        drawWireframeTheme(ctx, t, W, H, scroll, currentPulse)
+      } else if (currentBgTheme === "circuit") {
+        drawCircuitTheme(ctx, t, W, H, scroll, currentPulse)
+      }
+
+      const shouldDrawFullNeural = currentBgTheme === "neural"
 
       const currentMode = modeRef.current
       const intensity = currentMode === "live" ? 1.45 : 1.0
@@ -251,7 +447,6 @@ function CanvasBackgroundInner() {
       const jitter = currentMode === "live" ? 0.1 : 0.06
       const scrollFactor = 1 + scroll * 0.2
 
-      // Update nodes - iterate backwards for safe removal
       for (let i = nodes.length - 1; i >= 0; i--) {
         const n = nodes[i]
         n.vx += (Math.random() - 0.5) * jitter * dt
@@ -277,94 +472,100 @@ function CanvasBackgroundInner() {
       const maxDist = Math.min(230, Math.max(130, W * 0.18))
       const maxDistSq = maxDist * maxDist
       const [r, g, b] = themeColorRef.current
-      const currentPulse = sealPulseRef.current
       const linkBoost = (currentMode === "live" ? 1.2 : 1.0) + currentPulse * 0.8
 
       let linkCount = 0
       const nodeLen = nodes.length
 
-      // Draw all nodes first
-      ctx.beginPath()
-      for (let i = 0; i < nodeLen; i++) {
-        const a = nodes[i]
-        ctx.moveTo(a.x + a.r, a.y)
-        ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2)
-      }
-      ctx.fillStyle = "rgba(200,220,255,0.16)"
-      ctx.fill()
-
-      // Draw sparks with higher alpha
-      ctx.beginPath()
-      for (let i = 0; i < nodeLen; i++) {
-        const a = nodes[i]
-        if (a.kind === "spark") {
+      if (shouldDrawFullNeural) {
+        ctx.beginPath()
+        for (let i = 0; i < nodeLen; i++) {
+          const a = nodes[i]
           ctx.moveTo(a.x + a.r, a.y)
           ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2)
         }
-      }
-      ctx.fillStyle = "rgba(200,220,255,0.22)"
-      ctx.fill()
+        ctx.fillStyle = "rgba(200,220,255,0.16)"
+        ctx.fill()
 
-      // Draw connections with spatial partitioning optimization
-      ctx.lineWidth = 1
-      for (let i = 0; i < nodeLen; i++) {
-        const a = nodes[i]
-        for (let j = i + 1; j < nodeLen; j++) {
-          const bN = nodes[j]
-          const dx = a.x - bN.x
-          const dy = a.y - bN.y
-          const distSq = dx * dx + dy * dy
-          if (distSq > maxDistSq) continue
-
-          const d = Math.sqrt(distSq)
-          const t01 = 1 - d / maxDist
-          const aCol = 0.07 * t01 * linkBoost
-          ctx.strokeStyle = `rgba(${r},${g},${b},${aCol})`
-          ctx.beginPath()
-          ctx.moveTo(a.x, a.y)
-          ctx.lineTo(bN.x, bN.y)
-          ctx.stroke()
-          linkCount++
-        }
-      }
-
-      // Central seal
-      const cx = W * 0.5 + px * 2.6
-      const cy = H * (0.28 + scroll * 0.08) + py * 2.2
-
-      const ringA = 0.1 + currentPulse * 0.12
-      ctx.strokeStyle = `rgba(255,255,255,${ringA})`
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.ellipse(cx, cy, 150 + currentPulse * 20, 76 + currentPulse * 10, 0.22, 0, Math.PI * 2)
-      ctx.stroke()
-
-      // Tri-spiral arcs
-      const triA = 0.08 + currentPulse * 0.16
-      const rad = 26 + currentPulse * 8
-      const rotSpeed = t * 0.00035 * (currentMode === "live" ? 1.2 : 0.7)
-      ctx.lineWidth = 2
-      for (let k = 0; k < 3; k++) {
-        const ang = ((Math.PI * 2) / 3) * k + rotSpeed
-        const ox = Math.cos(ang) * (38 + currentPulse * 10)
-        const oy = Math.sin(ang) * (22 + currentPulse * 6)
-        ctx.strokeStyle = `${TRI_COLORS[k]},${triA})`
         ctx.beginPath()
-        ctx.arc(cx + ox, cy + oy, rad, 0, Math.PI * 2)
+        for (let i = 0; i < nodeLen; i++) {
+          const a = nodes[i]
+          if (a.kind === "spark") {
+            ctx.moveTo(a.x + a.r, a.y)
+            ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2)
+          }
+        }
+        ctx.fillStyle = "rgba(200,220,255,0.22)"
+        ctx.fill()
+
+        ctx.lineWidth = 1
+        for (let i = 0; i < nodeLen; i++) {
+          const a = nodes[i]
+          for (let j = i + 1; j < nodeLen; j++) {
+            const bN = nodes[j]
+            const dx = a.x - bN.x
+            const dy = a.y - bN.y
+            const distSq = dx * dx + dy * dy
+            if (distSq > maxDistSq) continue
+
+            const d = Math.sqrt(distSq)
+            const t01 = 1 - d / maxDist
+            const aCol = 0.07 * t01 * linkBoost
+            ctx.strokeStyle = `rgba(${r},${g},${b},${aCol})`
+            ctx.beginPath()
+            ctx.moveTo(a.x, a.y)
+            ctx.lineTo(bN.x, bN.y)
+            ctx.stroke()
+            linkCount++
+          }
+        }
+      } else {
+        ctx.fillStyle = "rgba(200,220,255,0.12)"
+        ctx.beginPath()
+        for (let i = 0; i < nodeLen; i++) {
+          const a = nodes[i]
+          ctx.moveTo(a.x + a.r * 0.5, a.y)
+          ctx.arc(a.x, a.y, a.r * 0.5, 0, Math.PI * 2)
+        }
+        ctx.fill()
+      }
+
+      if (shouldDrawFullNeural) {
+        const cx = W * 0.5 + px * 2.6
+        const cy = H * (0.28 + scroll * 0.08) + py * 2.2
+
+        const ringA = 0.1 + currentPulse * 0.12
+        ctx.strokeStyle = `rgba(255,255,255,${ringA})`
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.ellipse(cx, cy, 150 + currentPulse * 20, 76 + currentPulse * 10, 0.22, 0, Math.PI * 2)
+        ctx.stroke()
+
+        const triA = 0.08 + currentPulse * 0.16
+        const rad = 26 + currentPulse * 8
+        const rotSpeed = t * 0.00035 * (currentMode === "live" ? 1.2 : 0.7)
+        ctx.lineWidth = 2
+        for (let k = 0; k < 3; k++) {
+          const ang = ((Math.PI * 2) / 3) * k + rotSpeed
+          const ox = Math.cos(ang) * (38 + currentPulse * 10)
+          const oy = Math.sin(ang) * (22 + currentPulse * 6)
+          ctx.strokeStyle = `${TRI_COLORS[k]},${triA})`
+          ctx.beginPath()
+          ctx.arc(cx + ox, cy + oy, rad, 0, Math.PI * 2)
+          ctx.stroke()
+        }
+
+        const frameA = 0.06 + scroll * 0.1
+        ctx.strokeStyle = `rgba(127,180,255,${frameA})`
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(26, 24)
+        ctx.lineTo(W - 26, 24)
+        ctx.lineTo(W - 26, H - 24)
+        ctx.lineTo(26, H - 24)
+        ctx.closePath()
         ctx.stroke()
       }
-
-      // Lattice frame
-      const frameA = 0.06 + scroll * 0.1
-      ctx.strokeStyle = `rgba(127,180,255,${frameA})`
-      ctx.lineWidth = 1
-      ctx.beginPath()
-      ctx.moveTo(26, 24)
-      ctx.lineTo(W - 26, 24)
-      ctx.lineTo(W - 26, H - 24)
-      ctx.lineTo(26, H - 24)
-      ctx.closePath()
-      ctx.stroke()
 
       ctx.fillStyle = "rgba(255,255,255,0.03)"
       for (let k = 0; k < 4; k++) {
@@ -375,11 +576,11 @@ function CanvasBackgroundInner() {
       frameRef.current = requestAnimationFrame(step)
     }
 
-    // Sync refs with props at lower frequency
     const syncInterval = setInterval(() => {
       modeRef.current = mode
       sealPulseRef.current = sealPulse
       themeColorRef.current = themeColor
+      backgroundThemeRef.current = backgroundTheme
 
       if (sealPulse > 0) {
         setSealPulse(Math.max(0, sealPulse - 0.012))
@@ -409,6 +610,7 @@ function CanvasBackgroundInner() {
     mode,
     theme,
     themeColor,
+    backgroundTheme,
     sealPulse,
     burst,
     makeNode,
@@ -419,6 +621,8 @@ function CanvasBackgroundInner() {
     toggleMode,
     triggerPulseSeal,
     triggerBurst,
+    drawWireframeTheme,
+    drawCircuitTheme,
   ])
 
   return <canvas ref={canvasRef} id="bg" className="fixed inset-0 w-full h-full block z-0 bg-transparent touch-none" />

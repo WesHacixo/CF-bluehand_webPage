@@ -44,7 +44,7 @@ function CanvasPlaygroundInner() {
   const frameRef = useRef<number>(0)
   const lastTimeRef = useRef(performance.now())
 
-  const { mode, theme, toggleMode, pulseSeal, spawnBurst } = useApp()
+  const { mode, theme, toggleMode, pulseSeal, spawnBurst, cycleBackgroundTheme, backgroundTheme } = useApp()
 
   const themeColor = THEME_COLORS[theme] || THEME_COLORS.neutral
 
@@ -452,6 +452,13 @@ function CanvasPlaygroundInner() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <button
+            onClick={cycleBackgroundTheme}
+            className="btn alt text-[11px] px-3 py-2"
+            title="Cycle through visual themes (Neural/Wireframe/Circuit)"
+          >
+            Theme: {backgroundTheme === "neural" ? "Neural" : backgroundTheme === "wireframe" ? "Wireframe" : "Circuit"}
+          </button>
           <button onClick={toggleMode} className="btn alt text-[11px] px-3 py-2">
             Mode: {mode === "calm" ? "Calm" : "Live"}
           </button>

@@ -4,5 +4,5 @@
 User-agent: *
 Allow: /
 
-# Sitemap location (update with actual URL after deployment)
-Sitemap: https://bluehand.solutions/sitemap.xml
+# Sitemap location
+Sitemap: /sitemap.xml

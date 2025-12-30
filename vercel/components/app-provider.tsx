@@ -1,14 +1,16 @@
 "use client"
 
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
 import type { ServiceKey } from "./service-detail-modal"
 
 type Mode = "calm" | "live"
 type Theme = "neutral" | "sovereign" | "pipeline" | "mesh" | "interface" | "research" | "startup" | "ip" | "privacy"
+type BackgroundTheme = "neural" | "wireframe" | "circuit"
 
 interface AppState {
   mode: Mode
   theme: Theme
+  backgroundTheme: BackgroundTheme
   sealPulse: number
   burst: number
   isModalOpen: boolean
@@ -22,6 +24,8 @@ interface AppState {
 interface AppContextType extends AppState {
   toggleMode: () => void
   setTheme: (theme: Theme) => void
+  setBackgroundTheme: (theme: BackgroundTheme) => void
+  cycleBackgroundTheme: () => void
   pulseSeal: () => void
   spawnBurst: () => void
   openModal: () => void
@@ -49,6 +53,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>({
     mode: "calm",
     theme: "neutral",
+    backgroundTheme: "neural",
     sealPulse: 0,
     burst: 0,
     isModalOpen: false,
@@ -65,6 +70,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setTheme = useCallback((theme: Theme) => {
     setState((prev) => ({ ...prev, theme, sealPulse: Math.min(1, prev.sealPulse + 0.45) }))
+  }, [])
+
+  const setBackgroundTheme = useCallback((backgroundTheme: BackgroundTheme) => {
+    setState((prev) => ({ ...prev, backgroundTheme, sealPulse: Math.min(1, prev.sealPulse + 0.6) }))
+  }, [])
+
+  const cycleBackgroundTheme = useCallback(() => {
+    setState((prev) => {
+      const themes: BackgroundTheme[] = ["neural", "wireframe", "circuit"]
+      const currentIndex = themes.indexOf(prev.backgroundTheme)
+      const nextIndex = (currentIndex + 1) % themes.length
+      return { ...prev, backgroundTheme: themes[nextIndex], sealPulse: Math.min(1, prev.sealPulse + 0.6) }
+    })
   }, [])
 
   const pulseSeal = useCallback(() => {
@@ -96,7 +114,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       ...prev,
       selectedService: key,
       isServiceDetailOpen: true,
-      theme: key, // Also update theme for visual feedback
+      theme: key,
       sealPulse: Math.min(1, prev.sealPulse + 0.3),
     }))
   }, [])
@@ -117,12 +135,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, burst: value }))
   }, [])
 
+  useEffect(() => {
+    if (state.mode === "live") {
+      const interval = setInterval(() => {
+        cycleBackgroundTheme()
+      }, 45000) // 45 seconds
+      return () => clearInterval(interval)
+    }
+  }, [state.mode, cycleBackgroundTheme])
+
   return (
     <AppContext.Provider
       value={{
         ...state,
         toggleMode,
         setTheme,
+        setBackgroundTheme,
+        cycleBackgroundTheme,
         pulseSeal,
         spawnBurst,
         openModal,
@@ -140,3 +169,5 @@ export function AppProvider({ children }: { children: ReactNode }) {
     </AppContext.Provider>
   )
 }
+
+export type { BackgroundTheme }

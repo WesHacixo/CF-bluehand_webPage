@@ -33,19 +33,25 @@ function HeroSectionInner() {
   const handleOpenContactForm = useCallback(() => openContactForm(), [openContactForm])
 
   return (
-    <section className="panel" id="work">
+    <section className="panel animate-fade-in-up" id="work" style={{ animationDelay: "0.1s" }}>
       <div className="fade" />
-      <h2 className="text-[clamp(30px,4.6vw,56px)] my-[6px_0_10px_0] leading-[1.02] tracking-[-0.02em] text-balance">
+      <h2
+        className="text-[clamp(28px,4.2vw,52px)] mt-1 mb-4 leading-[1.05] tracking-[-0.02em] text-balance animate-fade-in-up"
+        style={{ animationDelay: "0.2s" }}
+      >
         Private Intelligence.
         <br />
         Elegant Systems.
       </h2>
-      <p className="m-0 text-[rgba(234,240,255,0.88)] max-w-[62ch] text-[clamp(14px,1.35vw,17px)] leading-relaxed">
+      <p
+        className="m-0 text-[rgba(234,240,255,0.88)] max-w-[62ch] text-[clamp(14px,1.35vw,17px)] leading-relaxed animate-fade-in-up"
+        style={{ animationDelay: "0.3s" }}
+      >
         Bluehand designs and deploys <strong>sovereign intelligence stacks</strong>—local-first models, secure data
         pipelines, and governed agent meshes—so your organization stops renting its mind.
       </p>
 
-      <div className="cta-row flex gap-2.5 flex-wrap mt-[18px] items-center">
+      <div className="cta-row flex gap-3 flex-wrap mt-6 items-center animate-fade-in-up" style={{ animationDelay: "0.4s" }}>
         <button className="btn" onClick={handleOpenContactForm}>
           Request a Sovereignty Audit
         </button>
@@ -54,14 +60,19 @@ function HeroSectionInner() {
         </a>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-[18px]" id="proof">
-        {services.map((service) => (
-          <ServiceCard
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-8" id="proof">
+        {services.map((service, index) => (
+          <div
             key={service.key}
-            themeKey={service.key}
-            title={service.title}
-            description={service.description}
-          />
+            className="animate-scale-in"
+            style={{ animationDelay: `${0.5 + index * 0.1}s` }}
+          >
+            <ServiceCard
+              themeKey={service.key}
+              title={service.title}
+              description={service.description}
+            />
+          </div>
         ))}
       </div>
     </section>
