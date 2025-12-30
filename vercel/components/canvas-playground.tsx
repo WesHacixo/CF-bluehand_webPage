@@ -23,7 +23,17 @@ interface PlaygroundNode {
   age: number;
   colorTheme: string;
   constellationId?: number; // Track which constellation this node belongs to
+  constellationIndex?: number; // Index into CONSTELLATIONS array for connection data
+  starIndex?: number; // Index within constellation.stars array for connection mapping
   phase?: number; // For algorithmic movement
+  // 3D rotation for individual constellations
+  rotation3D?: { x: number; y: number; z: number };
+  baseX?: number; // Original position before 3D transform
+  baseY?: number;
+  // Neural network properties
+  connections?: number[]; // Indices of connected nodes
+  activation?: number; // For neural network patterns
+  layer?: number; // For fractal/lattice structures
 }
 
 // Real constellation data (normalized coordinates 0-1)
@@ -31,11 +41,246 @@ interface Constellation {
   name: string;
   stars: { x: number; y: number; magnitude?: number }[];
   connections: [number, number][];
+  type?: "constellation" | "nebula" | "cluster"; // Visual type
+  density?: number; // For clusters/nebula
 }
 
 const CONSTELLATIONS: Constellation[] = [
+  // Zodiac Constellations (12)
+  {
+    name: "Aries",
+    type: "constellation",
+    stars: [
+      { x: 0.2, y: 0.3, magnitude: 0.7 },
+      { x: 0.25, y: 0.35, magnitude: 0.6 },
+      { x: 0.3, y: 0.4, magnitude: 0.8 },
+      { x: 0.28, y: 0.45, magnitude: 0.5 },
+    ],
+    connections: [
+      [0, 1],
+      [1, 2],
+      [2, 3],
+    ],
+  },
+  {
+    name: "Taurus",
+    type: "constellation",
+    stars: [
+      { x: 0.4, y: 0.25, magnitude: 0.9 }, // Aldebaran
+      { x: 0.45, y: 0.3, magnitude: 0.6 },
+      { x: 0.5, y: 0.35, magnitude: 0.7 },
+      { x: 0.55, y: 0.3, magnitude: 0.6 },
+      { x: 0.6, y: 0.25, magnitude: 0.5 },
+      { x: 0.48, y: 0.4, magnitude: 0.6 },
+    ],
+    connections: [
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 4],
+      [1, 5],
+      [2, 5],
+    ],
+  },
+  {
+    name: "Gemini",
+    type: "constellation",
+    stars: [
+      { x: 0.3, y: 0.2, magnitude: 0.8 }, // Castor
+      { x: 0.35, y: 0.25, magnitude: 0.7 },
+      { x: 0.4, y: 0.3, magnitude: 0.6 },
+      { x: 0.5, y: 0.2, magnitude: 0.9 }, // Pollux
+      { x: 0.55, y: 0.25, magnitude: 0.7 },
+      { x: 0.6, y: 0.3, magnitude: 0.6 },
+    ],
+    connections: [
+      [0, 1],
+      [1, 2],
+      [3, 4],
+      [4, 5],
+      [1, 4],
+    ],
+  },
+  {
+    name: "Cancer",
+    type: "constellation",
+    stars: [
+      { x: 0.35, y: 0.4, magnitude: 0.5 },
+      { x: 0.4, y: 0.45, magnitude: 0.6 },
+      { x: 0.45, y: 0.5, magnitude: 0.7 },
+      { x: 0.5, y: 0.45, magnitude: 0.6 },
+      { x: 0.55, y: 0.4, magnitude: 0.5 },
+    ],
+    connections: [
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 4],
+      [0, 4],
+    ],
+  },
+  {
+    name: "Leo",
+    type: "constellation",
+    stars: [
+      { x: 0.25, y: 0.3, magnitude: 0.9 }, // Regulus
+      { x: 0.3, y: 0.35, magnitude: 0.7 },
+      { x: 0.35, y: 0.4, magnitude: 0.6 },
+      { x: 0.4, y: 0.45, magnitude: 0.7 },
+      { x: 0.45, y: 0.5, magnitude: 0.6 },
+      { x: 0.3, y: 0.5, magnitude: 0.5 },
+      { x: 0.2, y: 0.4, magnitude: 0.6 },
+    ],
+    connections: [
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 4],
+      [4, 5],
+      [5, 1],
+      [0, 6],
+    ],
+  },
+  {
+    name: "Virgo",
+    type: "constellation",
+    stars: [
+      { x: 0.4, y: 0.15, magnitude: 0.8 }, // Spica
+      { x: 0.45, y: 0.2, magnitude: 0.6 },
+      { x: 0.5, y: 0.25, magnitude: 0.7 },
+      { x: 0.55, y: 0.3, magnitude: 0.6 },
+      { x: 0.6, y: 0.35, magnitude: 0.5 },
+      { x: 0.5, y: 0.4, magnitude: 0.6 },
+    ],
+    connections: [
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 4],
+      [2, 5],
+    ],
+  },
+  {
+    name: "Libra",
+    type: "constellation",
+    stars: [
+      { x: 0.45, y: 0.35, magnitude: 0.7 },
+      { x: 0.5, y: 0.4, magnitude: 0.8 },
+      { x: 0.55, y: 0.35, magnitude: 0.7 },
+      { x: 0.5, y: 0.3, magnitude: 0.6 },
+      { x: 0.48, y: 0.45, magnitude: 0.5 },
+      { x: 0.52, y: 0.45, magnitude: 0.5 },
+    ],
+    connections: [
+      [0, 1],
+      [1, 2],
+      [1, 3],
+      [1, 4],
+      [1, 5],
+    ],
+  },
+  {
+    name: "Scorpius",
+    type: "constellation",
+    stars: [
+      { x: 0.5, y: 0.2, magnitude: 0.9 }, // Antares
+      { x: 0.52, y: 0.3, magnitude: 0.7 },
+      { x: 0.54, y: 0.4, magnitude: 0.6 },
+      { x: 0.56, y: 0.5, magnitude: 0.7 },
+      { x: 0.58, y: 0.6, magnitude: 0.6 },
+      { x: 0.6, y: 0.7, magnitude: 0.5 },
+      { x: 0.48, y: 0.3, magnitude: 0.6 },
+    ],
+    connections: [
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 4],
+      [4, 5],
+      [0, 6],
+      [1, 6],
+    ],
+  },
+  {
+    name: "Sagittarius",
+    type: "constellation",
+    stars: [
+      { x: 0.4, y: 0.5, magnitude: 0.7 },
+      { x: 0.45, y: 0.55, magnitude: 0.6 },
+      { x: 0.5, y: 0.6, magnitude: 0.8 },
+      { x: 0.55, y: 0.55, magnitude: 0.6 },
+      { x: 0.6, y: 0.5, magnitude: 0.7 },
+      { x: 0.5, y: 0.45, magnitude: 0.5 },
+      { x: 0.48, y: 0.65, magnitude: 0.6 },
+    ],
+    connections: [
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 4],
+      [2, 5],
+      [2, 6],
+    ],
+  },
+  {
+    name: "Capricornus",
+    type: "constellation",
+    stars: [
+      { x: 0.35, y: 0.5, magnitude: 0.6 },
+      { x: 0.4, y: 0.55, magnitude: 0.7 },
+      { x: 0.45, y: 0.6, magnitude: 0.6 },
+      { x: 0.5, y: 0.55, magnitude: 0.5 },
+      { x: 0.55, y: 0.5, magnitude: 0.6 },
+    ],
+    connections: [
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 4],
+    ],
+  },
+  {
+    name: "Aquarius",
+    type: "constellation",
+    stars: [
+      { x: 0.3, y: 0.4, magnitude: 0.7 },
+      { x: 0.35, y: 0.45, magnitude: 0.6 },
+      { x: 0.4, y: 0.5, magnitude: 0.7 },
+      { x: 0.45, y: 0.45, magnitude: 0.6 },
+      { x: 0.5, y: 0.4, magnitude: 0.5 },
+      { x: 0.55, y: 0.45, magnitude: 0.6 },
+    ],
+    connections: [
+      [0, 1],
+      [1, 2],
+      [2, 3],
+      [3, 4],
+      [4, 5],
+    ],
+  },
+  {
+    name: "Pisces",
+    type: "constellation",
+    stars: [
+      { x: 0.25, y: 0.5, magnitude: 0.6 },
+      { x: 0.3, y: 0.55, magnitude: 0.7 },
+      { x: 0.35, y: 0.6, magnitude: 0.6 },
+      { x: 0.6, y: 0.4, magnitude: 0.7 },
+      { x: 0.65, y: 0.45, magnitude: 0.6 },
+      { x: 0.7, y: 0.5, magnitude: 0.5 },
+    ],
+    connections: [
+      [0, 1],
+      [1, 2],
+      [3, 4],
+      [4, 5],
+      [1, 4],
+    ],
+  },
+  // Classic Constellations
   {
     name: "Orion",
+    type: "constellation",
     stars: [
       { x: 0.45, y: 0.3, magnitude: 0.5 }, // Betelgeuse
       { x: 0.55, y: 0.7, magnitude: 0.3 }, // Rigel
@@ -57,6 +302,7 @@ const CONSTELLATIONS: Constellation[] = [
   },
   {
     name: "Ursa Major",
+    type: "constellation",
     stars: [
       { x: 0.3, y: 0.4, magnitude: 0.6 },
       { x: 0.35, y: 0.35, magnitude: 0.6 },
@@ -78,6 +324,7 @@ const CONSTELLATIONS: Constellation[] = [
   },
   {
     name: "Cassiopeia",
+    type: "constellation",
     stars: [
       { x: 0.4, y: 0.3, magnitude: 0.6 },
       { x: 0.45, y: 0.25, magnitude: 0.6 },
@@ -94,6 +341,7 @@ const CONSTELLATIONS: Constellation[] = [
   },
   {
     name: "Cygnus",
+    type: "constellation",
     stars: [
       { x: 0.5, y: 0.2, magnitude: 0.5 }, // Deneb
       { x: 0.5, y: 0.5, magnitude: 0.6 }, // Center
@@ -107,6 +355,86 @@ const CONSTELLATIONS: Constellation[] = [
       [1, 3],
       [1, 4],
     ],
+  },
+  // Dense Star Clusters
+  {
+    name: "Pleiades",
+    type: "cluster",
+    density: 0.9,
+    stars: Array.from({ length: 25 }, (_, i) => {
+      const angle = (Math.PI * 2 * i) / 25;
+      const radius = (0.05 + Math.random() * 0.1) * (i % 3 === 0 ? 1.5 : 1);
+      return {
+        x: 0.5 + Math.cos(angle) * radius,
+        y: 0.5 + Math.sin(angle) * radius,
+        magnitude: 0.3 + Math.random() * 0.7,
+      };
+    }),
+    connections: [],
+  },
+  {
+    name: "Hyades",
+    type: "cluster",
+    density: 0.8,
+    stars: Array.from({ length: 30 }, (_, i) => {
+      const angle = (Math.PI * 2 * i) / 30;
+      const radius = (0.08 + Math.random() * 0.12) * (i % 4 === 0 ? 1.3 : 1);
+      return {
+        x: 0.5 + Math.cos(angle) * radius,
+        y: 0.5 + Math.sin(angle) * radius,
+        magnitude: 0.4 + Math.random() * 0.6,
+      };
+    }),
+    connections: [],
+  },
+  // Nebula
+  {
+    name: "Orion Nebula",
+    type: "nebula",
+    density: 0.7,
+    stars: Array.from({ length: 40 }, (_, i) => {
+      const angle = (Math.PI * 2 * i) / 40;
+      const radius =
+        (0.1 + Math.random() * 0.15) * (1 + Math.sin(angle * 3) * 0.3);
+      return {
+        x: 0.5 + Math.cos(angle) * radius,
+        y: 0.5 + Math.sin(angle) * radius,
+        magnitude: 0.2 + Math.random() * 0.8,
+      };
+    }),
+    connections: [],
+  },
+  {
+    name: "Eagle Nebula",
+    type: "nebula",
+    density: 0.75,
+    stars: Array.from({ length: 35 }, (_, i) => {
+      const angle = (Math.PI * 2 * i) / 35;
+      const radius =
+        (0.12 + Math.random() * 0.18) * (1 + Math.cos(angle * 2) * 0.4);
+      return {
+        x: 0.5 + Math.cos(angle) * radius,
+        y: 0.5 + Math.sin(angle) * radius,
+        magnitude: 0.3 + Math.random() * 0.7,
+      };
+    }),
+    connections: [],
+  },
+  {
+    name: "Crab Nebula",
+    type: "nebula",
+    density: 0.65,
+    stars: Array.from({ length: 50 }, (_, i) => {
+      const angle = (Math.PI * 2 * i) / 50;
+      const radius =
+        (0.08 + Math.random() * 0.2) * (1 + Math.sin(angle * 5) * 0.2);
+      return {
+        x: 0.5 + Math.cos(angle) * radius,
+        y: 0.5 + Math.sin(angle) * radius,
+        magnitude: 0.25 + Math.random() * 0.75,
+      };
+    }),
+    connections: [],
   },
 ];
 
@@ -164,13 +492,30 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
   const connectionFrameRef = useRef(0);
   const constellationIdRef = useRef(0);
   const [selectedColor, setSelectedColor] = useState<string>("current");
+  // Track which constellation to drop next
+  const nextConstellationIndexRef = useRef(0);
+  // Track 3D rotation for each constellation
+  const constellationRotationsRef = useRef<
+    Map<number, { x: number; y: number; z: number }>
+  >(new Map());
+  // Track which constellation is being rotated (right-click/two-finger)
+  const rotatingConstellationIdRef = useRef<number | null>(null);
+  // Pulse color rotation
+  const pulseColorIndexRef = useRef(0);
+  const pulseColorRotationRef = useRef(0);
 
   // New state for interactivity features
   const [clickCount, setClickCount] = useState(0);
+  // Use refs for values that don't need to trigger re-renders but are used in event handlers
+  const rotation3DRef = useRef({ x: 0, y: 0, z: 0 });
+  const isRotatingRef = useRef(false);
+  const currentConstellationRef = useRef(0);
+  const rotationStartRef = useRef({ x: 0, y: 0 });
+
+  // Keep state versions for UI display only
   const [rotation3D, setRotation3D] = useState({ x: 0, y: 0, z: 0 });
   const [isRotating, setIsRotating] = useState(false);
   const [currentConstellation, setCurrentConstellation] = useState(0);
-  const rotationStartRef = useRef({ x: 0, y: 0 });
 
   // Mobile gesture tracking
   const touchStateRef = useRef({
@@ -178,6 +523,18 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
     lastPinchDistance: 0,
     lastRotationAngle: 0,
   });
+  // Long press detection
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressThreshold = 500; // 500ms
+  const longPressActiveRef = useRef(false);
+  // Warping/fractal effects
+  const warpEffectRef = useRef<{
+    active: boolean;
+    centerX: number;
+    centerY: number;
+    intensity: number;
+    time: number;
+  }>({ active: false, centerX: 0, centerY: 0, intensity: 0, time: 0 });
 
   const { mode, theme, sealPulse, burst, toggleMode, pulseSeal, spawnBurst } =
     useApp();
@@ -218,9 +575,9 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
         r: baseR + Math.random() * (kind === "trail" ? 0.8 : 1.5),
         life:
           kind === "trail"
-            ? 50
+            ? 300 // Slowed down significantly (was 50)
             : kind === "spark"
-              ? 150 + Math.random() * 100
+              ? 800 + Math.random() * 400 // Much longer life (was 150-250)
               : Number.POSITIVE_INFINITY,
         kind,
         hue: Math.random() * 40 - 20,
@@ -240,37 +597,84 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
 
       const cx = x ?? W * 0.5;
       const cy = y ?? H * 0.5;
-      const constellationId = constellationIdRef.current++;
-      const nodeCount = window.innerWidth < 768 ? 12 : 18;
       const colorTheme = selectedColor;
 
-      // Create a new constellation
-      for (let i = 0; i < nodeCount; i++) {
-        const angle = (Math.PI * 2 * i) / nodeCount;
-        const radius = Math.min(W, H) * 0.12;
-        const spread = Math.min(W, H) * 0.06;
-        const nx =
-          cx + Math.cos(angle) * (radius + (Math.random() - 0.5) * spread);
-        const ny =
-          cy + Math.sin(angle) * (radius + (Math.random() - 0.5) * spread);
-        const phase = (Math.PI * 2 * i) / nodeCount;
-        nodesRef.current.push(
-          makeNode(nx, ny, 0, 0, "node", colorTheme, constellationId),
-        );
+      // Show swaths of night sky - drop 3-5 constellations in a region
+      const swathCount = 3 + Math.floor(Math.random() * 3); // 3-5 constellations
+      const swathSpread = Math.min(W, H) * 0.4; // Spread area
+
+      for (let s = 0; s < swathCount; s++) {
+        const constellationId = constellationIdRef.current++;
+
+        // Rotate through actual constellations
+        const constellationIndex = nextConstellationIndexRef.current;
+        nextConstellationIndexRef.current =
+          (nextConstellationIndexRef.current + 1) % CONSTELLATIONS.length;
+
+        const constellation = CONSTELLATIONS[constellationIndex];
+        const scale = Math.min(W, H) * (0.2 + Math.random() * 0.15);
+
+        // Offset position within swath
+        const offsetX = (Math.random() - 0.5) * swathSpread;
+        const offsetY = (Math.random() - 0.5) * swathSpread;
+        const swathX = cx + offsetX;
+        const swathY = cy + offsetY;
+
+        // Initialize 3D rotation for this constellation
+        constellationRotationsRef.current.set(constellationId, {
+          x: 0,
+          y: 0,
+          z: 0,
+        });
+
+        // Create nodes from actual constellation data
+        constellation.stars.forEach((star, starIndex) => {
+          const baseX = swathX + (star.x - 0.5) * scale;
+          const baseY = swathY + (star.y - 0.5) * scale;
+          const magnitude = star.magnitude || 0.5;
+
+          // Adjust size based on type
+          let nodeSize = 2.5 + magnitude * 3;
+          if (constellation.type === "nebula") {
+            nodeSize *= 0.6 + magnitude * 0.4; // Smaller, more varied
+          } else if (constellation.type === "cluster") {
+            nodeSize *= 0.4 + magnitude * 0.6; // Dense, smaller stars
+          }
+
+          const node = makeNode(
+            baseX,
+            baseY,
+            0,
+            0,
+            "constellation",
+            colorTheme,
+            constellationId,
+          );
+          node.r = nodeSize;
+          node.constellationIndex = constellationIndex;
+          node.starIndex = starIndex;
+          node.baseX = baseX;
+          node.baseY = baseY;
+          node.rotation3D = { x: 0, y: 0, z: 0 };
+          nodesRef.current.push(node);
+        });
       }
 
-      // Enforce limits - remove oldest constellations if needed
+      // Enforce limits - remove oldest constellations if needed (allow more for swaths)
       const constellations = new Set(
         nodesRef.current
           .map((n) => n.constellationId)
           .filter((id) => id !== undefined),
       );
-      if (constellations.size > MAX_CONSTELLATIONS) {
+      if (constellations.size > MAX_CONSTELLATIONS * 2) {
         const sortedIds = Array.from(constellations).sort();
         const toRemove = sortedIds.slice(
           0,
-          sortedIds.length - MAX_CONSTELLATIONS,
+          sortedIds.length - MAX_CONSTELLATIONS * 2,
         );
+        toRemove.forEach((id) => {
+          constellationRotationsRef.current.delete(id);
+        });
         nodesRef.current = nodesRef.current.filter(
           (n) => !toRemove.includes(n.constellationId ?? -1),
         );
@@ -334,7 +738,7 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
       const constellation = CONSTELLATIONS[constellationIndex];
       const constellationId = constellationIdRef.current++;
 
-      constellation.stars.forEach((star) => {
+      constellation.stars.forEach((star, starIndex) => {
         const x = centerX + (star.x - 0.5) * scale;
         const y = centerY + (star.y - 0.5) * scale;
         const magnitude = star.magnitude || 0.5;
@@ -348,10 +752,12 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
           constellationId,
         );
         node.r = 2 + magnitude * 2;
+        node.constellationIndex = constellationIndex; // Store index for connection rendering
+        node.starIndex = starIndex; // Store star index for connection mapping
         nodesRef.current.push(node);
       });
     },
-    [makeNode],
+    [makeNode, selectedColor],
   );
 
   useEffect(() => {
@@ -429,16 +835,57 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
       pointerRef.current.velocity = { x: 0, y: 0 };
       pointerRef.current.trail = [];
 
-      // Increment click count
-      setClickCount((prev) => prev + 1);
-
-      // Every 5 clicks, spawn a constellation
-      if ((clickCount + 1) % 5 === 0) {
-        spawnConstellation(currentConstellation, coords.x, coords.y, 120);
-        setCurrentConstellation((prev) => (prev + 1) % CONSTELLATIONS.length);
+      // Long press detection for touch events
+      if ("touches" in e && e.touches.length === 1) {
+        longPressActiveRef.current = false;
+        longPressTimerRef.current = window.setTimeout(() => {
+          longPressActiveRef.current = true;
+          // Schrodinger twist / ripple effect
+          warpEffectRef.current = {
+            active: true,
+            centerX: coords.x,
+            centerY: coords.y,
+            intensity: 1.0,
+            time: 0,
+          };
+          // Create ripple effect
+          for (let i = 0; i < 20; i++) {
+            const angle = (Math.PI * 2 * i) / 20;
+            const dist = 30 + Math.random() * 20;
+            const nx = coords.x + Math.cos(angle) * dist;
+            const ny = coords.y + Math.sin(angle) * dist;
+            nodesRef.current.push(
+              makeNode(
+                nx,
+                ny,
+                Math.cos(angle) * 2,
+                Math.sin(angle) * 2,
+                "spark",
+                selectedColor,
+              ),
+            );
+          }
+        }, longPressThreshold);
       } else {
-        // Spawn initial burst on click
-        spawnCluster(coords.x, coords.y, 8);
+        // Mouse click - increment click count
+        setClickCount((prev) => prev + 1);
+
+        // Every 5 clicks, spawn a constellation
+        if ((clickCount + 1) % 5 === 0) {
+          const nextConstellation =
+            (currentConstellationRef.current + 1) % CONSTELLATIONS.length;
+          currentConstellationRef.current = nextConstellation;
+          setCurrentConstellation(nextConstellation);
+          spawnConstellation(
+            currentConstellationRef.current,
+            coords.x,
+            coords.y,
+            120,
+          );
+        } else {
+          // Spawn initial burst on click
+          spawnCluster(coords.x, coords.y, 8);
+        }
       }
     };
 
@@ -446,21 +893,62 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
       e.preventDefault();
       const coords = getCanvasCoords(e);
       rotationStartRef.current = { x: coords.x, y: coords.y };
+
+      // Find which constellation is under the pointer
+      const nodes = nodesRef.current;
+      let foundConstellationId: number | null = null;
+      let minDist = Infinity;
+
+      for (const node of nodes) {
+        if (
+          node.kind === "constellation" &&
+          node.constellationId !== undefined
+        ) {
+          const dx = node.x - coords.x;
+          const dy = node.y - coords.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 100 && dist < minDist) {
+            minDist = dist;
+            foundConstellationId = node.constellationId;
+          }
+        }
+      }
+
+      rotatingConstellationIdRef.current = foundConstellationId;
+      isRotatingRef.current = true;
       setIsRotating(true);
     };
 
     const onPointerMove = (e: MouseEvent | TouchEvent) => {
       const coords = getCanvasCoords(e);
 
-      // Handle 3D rotation
-      if (isRotating && e instanceof MouseEvent) {
+      // Handle 3D rotation (individual constellation or global)
+      if (isRotatingRef.current && e instanceof MouseEvent) {
         const dx = coords.x - rotationStartRef.current.x;
         const dy = coords.y - rotationStartRef.current.y;
-        setRotation3D((prev) => ({
-          x: prev.x + dy * 0.01,
-          y: prev.y + dx * 0.01,
-          z: prev.z,
-        }));
+
+        if (rotatingConstellationIdRef.current !== null) {
+          // Rotate individual constellation
+          const rot = constellationRotationsRef.current.get(
+            rotatingConstellationIdRef.current,
+          );
+          if (rot) {
+            rot.x += dy * 0.01;
+            rot.y += dx * 0.01;
+            constellationRotationsRef.current.set(
+              rotatingConstellationIdRef.current,
+              rot,
+            );
+          }
+        } else {
+          // Rotate entire canvas
+          rotation3DRef.current = {
+            x: rotation3DRef.current.x + dy * 0.01,
+            y: rotation3DRef.current.y + dx * 0.01,
+            z: rotation3DRef.current.z,
+          };
+          setRotation3D(rotation3DRef.current);
+        }
         rotationStartRef.current = { x: coords.x, y: coords.y };
         return;
       }
@@ -554,6 +1042,19 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
     };
 
     const onPointerUp = (e: MouseEvent | TouchEvent) => {
+      // Clear long press timer
+      if (longPressTimerRef.current !== null) {
+        clearTimeout(longPressTimerRef.current);
+        longPressTimerRef.current = null;
+      }
+
+      // Handle touch release - if long press was active, don't trigger click
+      if ("touches" in e && longPressActiveRef.current) {
+        longPressActiveRef.current = false;
+        pointerRef.current.down = false;
+        return;
+      }
+
       if (pointerRef.current.down) {
         if (pointerRef.current.isPinching) {
           pointerRef.current.isPinching = false;
@@ -576,7 +1077,9 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
         }
       }
       pointerRef.current.down = false;
+      isRotatingRef.current = false;
       setIsRotating(false);
+      rotatingConstellationIdRef.current = null;
     };
 
     // Advanced touch gesture handlers for mobile
@@ -594,10 +1097,36 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
       } else if (e.touches.length === 2) {
         // Two-finger gesture - calculate initial distance and angle
         const [t1, t2] = touchStateRef.current.touches;
+        const centerX = (t1.x + t2.x) / 2;
+        const centerY = (t1.y + t2.y) / 2;
+
+        // Find which constellation is under the center point
+        const nodes = nodesRef.current;
+        let foundConstellationId: number | null = null;
+        let minDist = Infinity;
+
+        for (const node of nodes) {
+          if (
+            node.kind === "constellation" &&
+            node.constellationId !== undefined
+          ) {
+            const dx = node.x - centerX;
+            const dy = node.y - centerY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 100 && dist < minDist) {
+              minDist = dist;
+              foundConstellationId = node.constellationId;
+            }
+          }
+        }
+
+        rotatingConstellationIdRef.current = foundConstellationId;
+
         const dx = t2.x - t1.x;
         const dy = t2.y - t1.y;
         touchStateRef.current.lastPinchDistance = Math.sqrt(dx * dx + dy * dy);
         touchStateRef.current.lastRotationAngle = Math.atan2(dy, dx);
+        isRotatingRef.current = true;
         setIsRotating(true);
       }
     };
@@ -621,23 +1150,74 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
         const distance = Math.sqrt(dx * dx + dy * dy);
         const angle = Math.atan2(dy, dx);
 
-        // Pinch to zoom effect (modify scale via rotation)
+        // Warping/stretching and fractal build/bloom effect
         if (touchStateRef.current.lastPinchDistance > 0) {
           const pinchDelta = distance - touchStateRef.current.lastPinchDistance;
-          setRotation3D((prev) => ({
-            ...prev,
-            z: prev.z + pinchDelta * 0.002,
-          }));
+          const centerX = (t1.x + t2.x) / 2;
+          const centerY = (t1.y + t2.y) / 2;
+
+          // Activate warp effect
+          warpEffectRef.current = {
+            active: true,
+            centerX,
+            centerY,
+            intensity: Math.min(2.0, Math.abs(pinchDelta) * 0.01),
+            time: 0,
+          };
+
+          // Fractal build/bloom - create branching particles
+          if (Math.abs(pinchDelta) > 5) {
+            const branchCount = Math.min(
+              15,
+              Math.floor(Math.abs(pinchDelta) / 3),
+            );
+            for (let i = 0; i < branchCount; i++) {
+              const angle =
+                (Math.PI * 2 * i) / branchCount + Math.random() * 0.3;
+              const dist = 20 + Math.random() * 30;
+              const nx = centerX + Math.cos(angle) * dist;
+              const ny = centerY + Math.sin(angle) * dist;
+              const speed = 1 + Math.random() * 2;
+              nodesRef.current.push(
+                makeNode(
+                  nx,
+                  ny,
+                  Math.cos(angle) * speed,
+                  Math.sin(angle) * speed,
+                  "spark",
+                  selectedColor,
+                ),
+              );
+            }
+          }
         }
 
         // Two-finger rotation
         if (touchStateRef.current.lastRotationAngle !== 0) {
           const angleDelta = angle - touchStateRef.current.lastRotationAngle;
-          setRotation3D((prev) => ({
-            x: prev.x + Math.sin(angleDelta) * 0.5,
-            y: prev.y + Math.cos(angleDelta) * 0.5,
-            z: prev.z,
-          }));
+
+          if (rotatingConstellationIdRef.current !== null) {
+            // Rotate individual constellation
+            const rot = constellationRotationsRef.current.get(
+              rotatingConstellationIdRef.current,
+            );
+            if (rot) {
+              rot.x += Math.sin(angleDelta) * 0.5;
+              rot.y += Math.cos(angleDelta) * 0.5;
+              constellationRotationsRef.current.set(
+                rotatingConstellationIdRef.current,
+                rot,
+              );
+            }
+          } else {
+            // Rotate entire canvas
+            rotation3DRef.current = {
+              x: rotation3DRef.current.x + Math.sin(angleDelta) * 0.5,
+              y: rotation3DRef.current.y + Math.cos(angleDelta) * 0.5,
+              z: rotation3DRef.current.z,
+            };
+            setRotation3D(rotation3DRef.current);
+          }
         }
 
         touchStateRef.current.lastPinchDistance = distance;
@@ -652,7 +1232,9 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
         touchStateRef.current.touches = [];
         touchStateRef.current.lastPinchDistance = 0;
         touchStateRef.current.lastRotationAngle = 0;
+        isRotatingRef.current = false;
         setIsRotating(false);
+        rotatingConstellationIdRef.current = null;
         onPointerUp(e);
       } else if (e.touches.length === 1) {
         // Reset to single touch
@@ -664,7 +1246,9 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
         }));
         touchStateRef.current.lastPinchDistance = 0;
         touchStateRef.current.lastRotationAngle = 0;
+        isRotatingRef.current = false;
         setIsRotating(false);
+        rotatingConstellationIdRef.current = null;
       }
     };
 
@@ -713,11 +1297,12 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
       ctx.save();
       ctx.translate(W / 2, H / 2);
 
-      // Simple 3D projection
-      const cosX = Math.cos(rotation3D.x);
-      const sinX = Math.sin(rotation3D.x);
-      const cosY = Math.cos(rotation3D.y);
-      const sinY = Math.sin(rotation3D.y);
+      // Simple 3D projection (use ref for performance)
+      const rot = rotation3DRef.current;
+      const cosX = Math.cos(rot.x);
+      const sinX = Math.sin(rot.x);
+      const cosY = Math.cos(rot.y);
+      const sinY = Math.sin(rot.y);
 
       // Apply rotation matrix (simplified 3D to 2D projection)
       const scale = 0.5 + 0.5 * cosX;
@@ -732,11 +1317,12 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
       const pulseBoost = 1 + currentPulse * 0.3;
       const effectiveMaxDist = maxDist * pulseBoost;
 
-      // Update trail
+      // Update trail (slowed down fade)
       const trail = pointerRef.current.trail;
       for (let i = trail.length - 1; i >= 0; i--) {
-        trail[i].age += dt * 60;
-        if (trail[i].age > 25) {
+        trail[i].age += dt * 20; // Slower aging (was 60)
+        if (trail[i].age > 300) {
+          // Longer life (was 25)
           trail.splice(i, 1);
         }
       }
@@ -786,76 +1372,176 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
         n.vx *= friction;
         n.vy *= friction;
 
-        if (n.kind === "node") {
-          const driftIntensity = isLive ? 0.025 : 0.015;
-          n.vx += (Math.random() - 0.5) * driftIntensity;
-          n.vy += (Math.random() - 0.5) * driftIntensity;
-
-          // Algorithmic movement patterns in live mode
-          if (isLive && n.phase !== undefined) {
-            const time = t * 0.001;
-            const patternSpeed = 0.8;
-            const patternRadius = 8;
-
-            // Orbital pattern
-            const orbitalX =
-              Math.cos(n.phase + time * patternSpeed) * patternRadius;
-            const orbitalY =
-              Math.sin(n.phase + time * patternSpeed) * patternRadius;
-
-            // Lissajous pattern variation
-            const lissajousX =
-              Math.cos(n.phase * 2 + time * patternSpeed * 1.3) *
-              patternRadius *
-              0.6;
-            const lissajousY =
-              Math.sin(n.phase * 3 + time * patternSpeed * 0.9) *
-              patternRadius *
-              0.6;
-
-            // Combine patterns
-            n.vx += (orbitalX + lissajousX) * 0.15;
-            n.vy += (orbitalY + lissajousY) * 0.15;
-
-            // Constellation cohesion - nodes in same constellation move together
-            if (n.constellationId !== undefined) {
-              const constellationNodes = nodes.filter(
-                (other) =>
-                  other.constellationId === n.constellationId &&
-                  other.kind === "node",
-              );
-              if (constellationNodes.length > 1) {
-                let centerX = 0;
-                let centerY = 0;
-                for (const other of constellationNodes) {
-                  centerX += other.x;
-                  centerY += other.y;
-                }
-                centerX /= constellationNodes.length;
-                centerY /= constellationNodes.length;
-
-                const dx = centerX - n.x;
-                const dy = centerY - n.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist > 0) {
-                  const cohesionForce = 0.08;
-                  n.vx += (dx / dist) * cohesionForce;
-                  n.vy += (dy / dist) * cohesionForce;
-                }
+        // Apply 3D rotation to constellation nodes
+        if (
+          n.kind === "constellation" &&
+          n.constellationId !== undefined &&
+          n.baseX !== undefined &&
+          n.baseY !== undefined
+        ) {
+          const rot = constellationRotationsRef.current.get(n.constellationId);
+          if (rot) {
+            // Calculate center of constellation
+            const constellationNodes = nodes.filter(
+              (other) =>
+                other.constellationId === n.constellationId &&
+                other.kind === "constellation",
+            );
+            let centerX = 0;
+            let centerY = 0;
+            for (const other of constellationNodes) {
+              if (other.baseX !== undefined && other.baseY !== undefined) {
+                centerX += other.baseX;
+                centerY += other.baseY;
               }
             }
+            centerX /= constellationNodes.length;
+            centerY /= constellationNodes.length;
+
+            // Apply 3D rotation transform
+            const dx = n.baseX - centerX;
+            const dy = n.baseY - centerY;
+            const cosX = Math.cos(rot.x);
+            const sinX = Math.sin(rot.x);
+            const cosY = Math.cos(rot.y);
+            const sinY = Math.sin(rot.y);
+
+            // 3D rotation matrix (simplified)
+            const rotatedX = dx * cosY - dy * sinX * sinY;
+            const rotatedY = dy * cosX + dx * sinY * cosX;
+            const scale = 0.8 + 0.2 * Math.cos(rot.z);
+
+            n.x = centerX + rotatedX * scale;
+            n.y = centerY + rotatedY * scale;
           }
         }
 
+        if (n.kind === "node") {
+          // Neural lattice network patterns in live mode
+          if (isLive && n.phase !== undefined) {
+            const time = t * 0.001;
+
+            // Initialize neural network properties if needed
+            if (n.connections === undefined) {
+              n.connections = [];
+              n.activation = Math.random();
+              n.layer = Math.floor(Math.random() * 3);
+            }
+
+            // Neural lattice movement - nodes form small-world network patterns
+            const layer = n.layer ?? 0;
+            const latticeRadius = 25 + layer * 15;
+            const latticeSpeed = 0.5 + layer * 0.2;
+
+            // Circular lattice pattern (neural network topology)
+            const latticeX =
+              Math.cos(n.phase + time * latticeSpeed) * latticeRadius;
+            const latticeY =
+              Math.sin(n.phase + time * latticeSpeed) * latticeRadius;
+
+            // Fractal growth pattern - nodes attract to form clusters
+            let clusterX = 0;
+            let clusterY = 0;
+            let clusterCount = 0;
+            for (const other of nodes) {
+              if (
+                other.kind === "node" &&
+                other !== n &&
+                (other.layer ?? 0) === layer
+              ) {
+                const dx = other.x - n.x;
+                const dy = other.y - n.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 80) {
+                  clusterX += other.x;
+                  clusterY += other.y;
+                  clusterCount++;
+                }
+              }
+            }
+            if (clusterCount > 0) {
+              clusterX /= clusterCount;
+              clusterY /= clusterCount;
+              const dx = clusterX - n.x;
+              const dy = clusterY - n.y;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              if (dist > 0) {
+                const attraction = 0.05;
+                n.vx += (dx / dist) * attraction;
+                n.vy += (dy / dist) * attraction;
+              }
+            }
+
+            // Apply lattice movement
+            n.vx += latticeX * 0.08;
+            n.vy += latticeY * 0.08;
+
+            // Activation wave (neural network firing pattern)
+            n.activation = Math.sin(time * 2 + n.phase) * 0.5 + 0.5;
+          } else {
+            // Calm mode - gentle drift
+            const driftIntensity = 0.015;
+            n.vx += (Math.random() - 0.5) * driftIntensity;
+            n.vy += (Math.random() - 0.5) * driftIntensity;
+          }
+        }
+
+        // Pulse effect - rotate through colors with dispersed patterns
         if (currentPulse > 0.3) {
+          // Rotate color index during pulse
+          pulseColorRotationRef.current += dt * 2;
+          if (pulseColorRotationRef.current > 1) {
+            pulseColorRotationRef.current = 0;
+            pulseColorIndexRef.current =
+              (pulseColorIndexRef.current + 1) % colorOptions.length;
+          }
+
+          // Apply dispersed pulse pattern (multi-colored network)
+          const pulsePhase = pulseColorRotationRef.current;
+          const colorIndex =
+            (pulseColorIndexRef.current +
+              Math.floor(
+                (Math.sqrt((n.x - W * 0.5) ** 2 + (n.y - H * 0.5) ** 2) / 200) *
+                  colorOptions.length,
+              )) %
+            colorOptions.length;
+          const pulseColor = colorOptions[colorIndex];
+          if (pulseColor !== "current") {
+            n.colorTheme = pulseColor;
+          }
+
+          // Radial pulse force with dispersion
           const dx = n.x - W * 0.5;
           const dy = n.y - H * 0.5;
           const distSq = dx * dx + dy * dy;
           if (distSq > 0) {
             const dist = Math.sqrt(distSq);
-            const pulseForce = currentPulse * 0.12;
-            n.vx += (dx / dist) * pulseForce * dt * 60;
-            n.vy += (dy / dist) * pulseForce * dt * 60;
+            const angle = Math.atan2(dy, dx);
+            // Dispersed pattern - nodes move in spiral pattern
+            const spiralAngle = angle + pulsePhase * Math.PI * 2;
+            const pulseForce = currentPulse * 0.15;
+            n.vx += Math.cos(spiralAngle) * pulseForce * dt * 60;
+            n.vy += Math.sin(spiralAngle) * pulseForce * dt * 60;
+          }
+        }
+
+        // Apply warp effect (warping/stretching)
+        if (warpEffectRef.current.active) {
+          const warp = warpEffectRef.current;
+          const dx = n.x - warp.centerX;
+          const dy = n.y - warp.centerY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > 0) {
+            const warpFactor = 1 + warp.intensity * Math.exp(-dist / 100);
+            n.vx += (dx / dist) * (warpFactor - 1) * 0.1;
+            n.vy += (dy / dist) * (warpFactor - 1) * 0.1;
+          }
+          warp.time += dt;
+          if (warp.time > 0.5) {
+            warp.intensity *= 0.95; // Fade out
+            if (warp.intensity < 0.1) {
+              warp.active = false;
+            }
           }
         }
 
@@ -879,7 +1565,7 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
         }
 
         if (n.life !== Number.POSITIVE_INFINITY) {
-          n.life -= 60 * dt;
+          n.life -= 20 * dt; // Slower fade (was 60)
           if (n.life <= 0) {
             nodes.splice(i, 1);
             continue;
@@ -905,12 +1591,59 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
         }
       }
 
+      // Enforce particle caps
+      const currentNodes = nodesRef.current;
+      const sparks = currentNodes.filter((n) => n.kind === "spark");
+      const trails = currentNodes.filter((n) => n.kind === "trail");
+      const regularNodes = currentNodes.filter(
+        (n) => n.kind === "node" || n.kind === "constellation",
+      );
+
+      // Prune excess sparks
+      if (sparks.length > MAX_SPARKS) {
+        sparks.sort((a, b) => a.age - b.age); // Remove oldest first
+        const toRemove = sparks.slice(0, sparks.length - MAX_SPARKS);
+        nodesRef.current = nodesRef.current.filter(
+          (n) => !toRemove.includes(n),
+        );
+      }
+
+      // Prune excess trails
+      const currentTrails = nodesRef.current.filter((n) => n.kind === "trail");
+      if (currentTrails.length > MAX_TRAILS) {
+        currentTrails.sort((a, b) => a.age - b.age); // Remove oldest first
+        const toRemove = currentTrails.slice(
+          0,
+          currentTrails.length - MAX_TRAILS,
+        );
+        nodesRef.current = nodesRef.current.filter(
+          (n) => !toRemove.includes(n),
+        );
+      }
+
+      // Prune excess total nodes (prioritize keeping constellations)
+      const finalNodes = nodesRef.current;
+      if (finalNodes.length > MAX_NODES) {
+        // Sort by priority: keep constellations, then nodes, then others
+        const sorted = [...finalNodes].sort((a, b) => {
+          if (a.kind === "constellation" && b.kind !== "constellation")
+            return -1;
+          if (a.kind !== "constellation" && b.kind === "constellation")
+            return 1;
+          if (a.kind === "node" && b.kind !== "node") return -1;
+          if (a.kind !== "node" && b.kind === "node") return 1;
+          return a.age - b.age; // Remove oldest of same kind
+        });
+        nodesRef.current = sorted.slice(0, MAX_NODES);
+      }
+
       // Draw constellation connections first
       const constellationNodes = new Map<number, PlaygroundNode[]>();
       nodes.forEach((node) => {
         if (
           node.kind === "constellation" &&
-          node.constellationId !== undefined
+          node.constellationId !== undefined &&
+          node.constellationIndex !== undefined
         ) {
           if (!constellationNodes.has(node.constellationId)) {
             constellationNodes.set(node.constellationId, []);
@@ -919,8 +1652,43 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
         }
       });
 
-      // Note: Constellation connections rendering would need constellation index tracking
-      // For now, skip detailed constellation connection rendering
+      // Draw constellation connections using CONSTELLATIONS data
+      constellationNodes.forEach((constNodes, constellationId) => {
+        if (constNodes.length === 0) return;
+        const firstNode = constNodes[0];
+        if (
+          firstNode.constellationIndex === undefined ||
+          firstNode.starIndex === undefined
+        )
+          return;
+
+        const constellation = CONSTELLATIONS[firstNode.constellationIndex];
+        if (!constellation) return;
+
+        // Create map of starIndex -> node for quick lookup
+        const nodeMap = new Map<number, PlaygroundNode>();
+        constNodes.forEach((node) => {
+          if (node.starIndex !== undefined) {
+            nodeMap.set(node.starIndex, node);
+          }
+        });
+
+        // Draw connections
+        const [r, g, b] = getColorForTheme(firstNode.colorTheme);
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.6)`;
+        ctx.lineWidth = 2;
+
+        constellation.connections.forEach(([startIdx, endIdx]) => {
+          const start = nodeMap.get(startIdx);
+          const end = nodeMap.get(endIdx);
+          if (start && end) {
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.stroke();
+          }
+        });
+      });
 
       // Draw connections with glow effect
       let linkCount = 0;
@@ -970,11 +1738,11 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
       for (let i = 0; i < nodes.length; i++) {
         const n = nodes[i];
         if (n.kind === "trail") {
-          const alpha = Math.max(0, n.life / 50) * 0.5;
+          const alpha = Math.max(0, n.life / 300) * 0.5; // Adjusted for longer life
           const [r, g, b] = getColorForTheme(n.colorTheme);
           ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
           ctx.beginPath();
-          ctx.arc(n.x, n.y, n.r * (n.life / 50), 0, Math.PI * 2);
+          ctx.arc(n.x, n.y, n.r * (n.life / 300), 0, Math.PI * 2);
           ctx.fill();
           continue;
         }
@@ -983,7 +1751,7 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
         let radius = n.r;
 
         if (n.kind === "spark") {
-          alpha = Math.min(1, n.life / 120) * 0.7;
+          alpha = Math.min(1, n.life / 800) * 0.7; // Adjusted for longer life
         }
 
         const [r, g, b] = getColorForTheme(n.colorTheme);
@@ -1071,10 +1839,6 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
     spawnConstellation,
     theme,
     mode,
-    clickCount,
-    currentConstellation,
-    rotation3D,
-    isRotating,
     selectedColor,
     getColorForTheme,
     resetConstellation,
@@ -1097,12 +1861,12 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
               to rotate 3D
             </span>
             <span className="sm:hidden">
-              Tap to spawn • 2 fingers to rotate • Pinch to zoom
+              Tap to spawn • Long press for ripple • 2 fingers to warp & bloom
             </span>
           </p>
           <p className="m-0 mt-1 text-xs text-[rgba(127,180,255,0.8)] font-mono">
             Clicks: {clickCount} • Every 5 clicks spawns{" "}
-            {CONSTELLATIONS[currentConstellation].name}
+            {CONSTELLATIONS[currentConstellationRef.current].name}
           </p>
         </div>
         <div className="flex gap-2 flex-wrap items-center">
