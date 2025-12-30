@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+
+# Sitemap (add when available)
+# Sitemap: https://bluehand.solutions/sitemap.xml
+
+# Block common bot paths that aren't needed
+Disallow: /api/
+Disallow: /*.json$
+
+# Allow well-known paths
+Allow: /.well-known/
+
+# Crawl delay for aggressive crawlers
+User-agent: Googlebot
+Crawl-delay: 0
+
+User-agent: Bingbot
+Crawl-delay: 0

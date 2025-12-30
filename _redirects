@@ -1,0 +1,14 @@
+# Cloudflare Pages _redirects file
+# URL redirects and rewrites
+
+# Redirect www to non-www (or vice versa)
+https://www.bluehand.solutions/* https://bluehand.solutions/:splat 301!
+
+# Redirect HTTP to HTTPS (Cloudflare handles this automatically, but explicit is good)
+http://bluehand.solutions/* https://bluehand.solutions/:splat 301!
+
+# SPA fallback (if needed for future expansion)
+/*  /index.html  200
+
+# Custom 404 (create 404.html if needed)
+# /*  /404.html  404

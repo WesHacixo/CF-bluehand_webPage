@@ -1,0 +1,870 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Bluehand.Solutions — Own Your Intelligence</title>
+  <meta name="description" content="Sovereign intelligence systems: local-first, private, and governed by you." />
+
+  <style>
+    :root{
+      --bg0:#050814;
+      --bg1:#07102a;
+      --ink:#eaf0ff;
+      --muted:#a9b7e6;
+      --glass: rgba(10, 18, 45, 0.55);
+      --stroke: rgba(255,255,255,0.12);
+      --accent:#7fb4ff;
+      --accent2:#ffb55a;
+      --accent3:#ff5d7d;
+      --radius: 18px;
+      --shadow: 0 18px 60px rgba(0,0,0,0.35);
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; margin:0; background: radial-gradient(1200px 900px at 40% 20%, var(--bg1), var(--bg0)); color:var(--ink); font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+
+    /* Canvas background */
+    #bg {
+      position:fixed;
+      inset:0;
+      width:100%;
+      height:100%;
+      display:block;
+      z-index:0;
+      background: transparent;
+      touch-action: none;
+    }
+
+    /* Content overlay */
+    .shell{
+      position:relative;
+      z-index:1;
+      min-height:100%;
+      display:flex;
+      flex-direction:column;
+      padding: clamp(18px, 3vw, 40px);
+      gap: 22px;
+    }
+
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 14px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      user-select:none;
+    }
+
+    .mark{
+      width:34px;height:34px;border-radius:999px;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(127,180,255,.9), rgba(127,180,255,.05) 60%),
+        radial-gradient(circle at 70% 70%, rgba(255,181,90,.6), rgba(255,181,90,.03) 58%),
+        radial-gradient(circle at 40% 75%, rgba(255,93,125,.55), rgba(255,93,125,.03) 62%);
+      border: 1px solid rgba(255,255,255,0.18);
+      box-shadow: 0 0 32px rgba(127,180,255,0.20);
+      position:relative;
+      overflow:hidden;
+    }
+
+    /* subtle "seal" hint inside the mark */
+    .mark:before{
+      content:"";
+      position:absolute; inset:6px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.18);
+      opacity:0.7;
+    }
+    .mark:after{
+      content:"";
+      position:absolute; inset:9px;
+      border-radius:999px;
+      border:1px dashed rgba(255,255,255,0.12);
+      opacity:0.6;
+      animation: spin 12s linear infinite;
+    }
+    @keyframes spin{ to{ transform:rotate(360deg);} }
+
+    .brand h1{
+      font-size: 14px;
+      letter-spacing: 0.22em;
+      margin:0;
+      text-transform:uppercase;
+      color: rgba(234,240,255,0.95);
+    }
+    .brand .sub{
+      font-size: 12px;
+      margin-top:2px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform:uppercase;
+    }
+
+    nav{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .pill{
+      border:1px solid var(--stroke);
+      background: rgba(10, 18, 45, 0.25);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 10px 12px;
+      border-radius: 999px;
+      color: rgba(234,240,255,0.9);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-decoration:none;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease;
+      user-select:none;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .pill:hover{ transform: translateY(-1px); border-color: rgba(127,180,255,0.35); background: rgba(10,18,45,0.35); }
+    .pill[aria-pressed="true"]{ border-color: rgba(127,180,255,0.55); background: rgba(127,180,255,0.10); }
+
+    main{
+      flex:1;
+      display:grid;
+      grid-template-columns: 1.35fr 0.65fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel{
+      border:1px solid var(--stroke);
+      background: var(--glass);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-radius: var(--radius);
+      padding: clamp(16px, 2.2vw, 24px);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .hero h2{
+      font-size: clamp(30px, 4.6vw, 56px);
+      margin: 6px 0 10px 0;
+      line-height: 1.02;
+      letter-spacing: -0.02em;
+    }
+
+    .hero p{
+      margin: 0;
+      color: rgba(234,240,255,0.88);
+      max-width: 62ch;
+      font-size: clamp(14px, 1.35vw, 17px);
+      line-height: 1.55;
+    }
+
+    .ctaRow{
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+      align-items:center;
+    }
+
+    .btn{
+      border:1px solid rgba(127,180,255,0.35);
+      background: rgba(127,180,255,0.12);
+      color: var(--ink);
+      padding: 12px 14px;
+      border-radius: 12px;
+      text-decoration:none;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 12px;
+      transition: transform .15s ease, background .15s ease, border-color .15s ease;
+      cursor:pointer;
+      user-select:none;
+    }
+    .btn:hover{ transform: translateY(-1px); background: rgba(127,180,255,0.18); border-color: rgba(127,180,255,0.55); }
+
+    .btn.alt{
+      border-color: rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.06);
+      font-weight: 500;
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .card{
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.18);
+      border-radius: 14px;
+      padding: 12px;
+      transition: transform .18s ease, border-color .18s ease, background .18s ease;
+    }
+    .card:hover{ transform: translateY(-1px); border-color: rgba(127,180,255,0.28); background: rgba(0,0,0,0.22); }
+
+    .card .k{
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: rgba(234,240,255,0.85);
+      margin:0 0 6px 0;
+    }
+    .card .v{
+      margin:0;
+      color: rgba(169,183,230,0.95);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .side h3{
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(234,240,255,0.90);
+    }
+
+    .side p{
+      margin: 0 0 14px 0;
+      color: rgba(234,240,255,0.78);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .list{
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+
+    .item{
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.10);
+      background: rgba(0,0,0,0.16);
+      transition: transform .18s ease, border-color .18s ease;
+    }
+    .item:hover{ transform: translateY(-1px); border-color: rgba(127,180,255,0.22); }
+
+    .item b{
+      display:block;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(234,240,255,0.90);
+      margin-bottom: 6px;
+    }
+    .item span{
+      display:block;
+      color: rgba(169,183,230,0.95);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    footer{
+      display:flex;
+      justify-content:space-between;
+      gap: 12px;
+      align-items:center;
+      color: rgba(169,183,230,0.85);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .fade{
+      position:absolute;
+      inset:-1px;
+      pointer-events:none;
+      background:
+        radial-gradient(600px 300px at 25% 0%, rgba(127,180,255,0.18), rgba(0,0,0,0) 60%),
+        radial-gradient(400px 240px at 80% 30%, rgba(255,181,90,0.12), rgba(0,0,0,0) 55%),
+        radial-gradient(420px 280px at 35% 85%, rgba(255,93,125,0.10), rgba(0,0,0,0) 60%);
+      opacity:0.9;
+    }
+
+    /* Heads-up display */
+    .hud{
+      position:fixed;
+      right: 14px;
+      bottom: 14px;
+      z-index: 3;
+      display:flex;
+      gap: 10px;
+      align-items:flex-end;
+    }
+    .hud .box{
+      border:1px solid rgba(255,255,255,0.12);
+      background: rgba(10,18,45,0.35);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 14px;
+      padding: 10px 12px;
+      box-shadow: 0 14px 40px rgba(0,0,0,0.35);
+      width: min(320px, 76vw);
+    }
+    .hud .title{
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(234,240,255,0.90);
+      margin:0 0 8px 0;
+    }
+    .hud .meta{
+      display:flex;
+      gap: 10px;
+      flex-wrap:wrap;
+      color: rgba(169,183,230,0.9);
+      font-size: 12px;
+      line-height:1.4;
+    }
+    .kv{ font-family: var(--mono); font-size: 11px; opacity:0.9; }
+    .kbd{
+      font-family: var(--mono);
+      font-size: 11px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.06);
+      border-radius: 8px;
+      padding: 2px 6px;
+      opacity:0.9;
+    }
+
+    /* Overlay modal */
+    #overlay{
+      position:fixed; inset:0; z-index:5; display:none;
+      background: rgba(0,0,0,0.55); backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: clamp(16px, 3vw, 36px);
+    }
+
+    /* Responsive */
+    @media (max-width: 900px){
+      main{ grid-template-columns: 1fr; }
+      .hud{ left:14px; right:14px; justify-content:space-between; }
+      .hud .box{ width: min(520px, 92vw); }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .mark:after{ animation:none; }
+      .card, .item, .pill, .btn{ transition:none; }
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="bg"></canvas>
+
+  <div class="shell">
+    <header>
+      <div class="brand" aria-label="Bluehand brand">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <h1>BLUEHAND.SOLUTIONS</h1>
+          <div class="sub">Own Your Intelligence</div>
+        </div>
+      </div>
+
+      <nav>
+        <a class="pill" href="#work" onclick="scrollToSection('work');return false;">Work</a>
+        <a class="pill" href="#audit" onclick="scrollToSection('audit');return false;">Sovereignty Audit</a>
+        <button class="pill" id="modeBtn" aria-pressed="false" onclick="toggleMode()">Mode: Calm</button>
+        <a class="pill" href="mailto:hello@bluehand.solutions">Email</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="panel hero" id="work">
+        <div class="fade"></div>
+        <h2>Private Intelligence.<br/>Elegant Systems.</h2>
+        <p>
+          Bluehand designs and deploys <b>sovereign intelligence stacks</b>—local-first models,
+          secure data pipelines, and governed agent meshes—so your organization stops renting its mind.
+        </p>
+
+        <div class="ctaRow">
+          <a class="btn" href="#audit" onclick="scrollToSection('audit');return false;">Request a Sovereignty Audit</a>
+          <button class="btn alt" onclick="pulseSeal()">Pulse the Seal</button>
+          <button class="btn alt" onclick="toggleOverlay(true)">Open Canvas Brief</button>
+        </div>
+
+        <div class="grid" id="proof" style="margin-top:18px;">
+          <div class="card" onclick="focusTheme('sovereign')">
+            <p class="k">Sovereign AI</p>
+            <p class="v">LLMs + embeddings running on your machines—Mac minis to multi-node clusters.</p>
+          </div>
+          <div class="card" onclick="focusTheme('pipeline')">
+            <p class="k">Secure Pipelines</p>
+            <p class="v">Encrypted, auditable flows from ingestion to inference—no training leakage.</p>
+          </div>
+          <div class="card" onclick="focusTheme('mesh')">
+            <p class="k">Agent Mesh</p>
+            <p class="v">Orchestrated agents with boundary + governance, not uncontrolled automation.</p>
+          </div>
+          <div class="card" onclick="focusTheme('interface')">
+            <p class="k">Human Interface</p>
+            <p class="v">Chat/canvas/dashboards that keep complex intelligence legible and usable.</p>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel side">
+        <div class="fade"></div>
+        <h3>Who this is for</h3>
+        <p>
+          Teams with proprietary data, privacy requirements, or simple refusal to be platform-dependent.
+        </p>
+
+        <div class="list">
+          <div class="item" onclick="focusTheme('research')">
+            <b>Labs & Research</b>
+            <span>Local inference + reproducible pipelines. Evidence, not hype.</span>
+          </div>
+          <div class="item" onclick="focusTheme('startup')">
+            <b>Startups</b>
+            <span>Build defensibility by owning the stack and the memory.</span>
+          </div>
+          <div class="item" onclick="focusTheme('ip')">
+            <b>Artists & IP</b>
+            <span>Private creative engines; your style stays yours.</span>
+          </div>
+          <div class="item" onclick="focusTheme('privacy')">
+            <b>NGOs & Privacy</b>
+            <span>Controlled, non-extractive intelligence infrastructure.</span>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <section class="panel" id="audit">
+      <div class="fade"></div>
+      <h3 style="margin:0 0 10px 0; letter-spacing:.18em; text-transform:uppercase;">Sovereignty Audit</h3>
+      <p style="margin:0; color:rgba(234,240,255,0.84); line-height:1.55; max-width: 80ch;">
+        A short, high-signal engagement to map your data, risk, and compute realities—then design a
+        sovereign path: local-first where possible, secure hybrid where necessary, and governed throughout.
+      </p>
+
+      <div class="ctaRow" style="margin-top:14px;">
+        <a class="btn" href="mailto:hello@bluehand.solutions?subject=Sovereignty%20Audit&body=Context%3A%0A%0AConstraints%3A%0A%0AGoal%3A%0A%0ATimeline%3A%0A">
+          Email: hello@bluehand.solutions
+        </a>
+        <button class="btn alt" onclick="spawnBurst()">Drop a Constellation</button>
+        <button class="btn alt" onclick="toggleOverlay(true)">Open Canvas Brief</button>
+      </div>
+    </section>
+
+    <footer>
+      <div>© <span id="y"></span> Bluehand.Solutions</div>
+      <div style="opacity:.9;">Sovereign intelligence, elegantly delivered.</div>
+    </footer>
+  </div>
+
+  <!-- HUD -->
+  <div class="hud" aria-hidden="true">
+    <div class="box">
+      <p class="title">Canvas Controls</p>
+      <div class="meta">
+        <span><span class="kbd">Click</span> spawn</span>
+        <span><span class="kbd">Drag</span> field</span>
+        <span><span class="kbd">M</span> mode</span>
+        <span><span class="kbd">S</span> seal pulse</span>
+        <span><span class="kbd">B</span> burst</span>
+      </div>
+      <div class="kv" id="kv">nodes: — • links: — • mode: —</div>
+    </div>
+  </div>
+
+  <!-- Modal overlay (canvas-brief) -->
+  <div id="overlay" onclick="if(event.target.id==='overlay') toggleOverlay(false)">
+    <div style="
+      max-width: 980px; margin: 6vh auto 0 auto;
+      border:1px solid rgba(255,255,255,0.14);
+      border-radius: 18px;
+      background: rgba(10,18,45,0.65);
+      box-shadow: 0 30px 90px rgba(0,0,0,0.55);
+      overflow:hidden;
+    ">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding: 14px 16px; border-bottom:1px solid rgba(255,255,255,0.10);">
+        <div style="letter-spacing:.18em; text-transform:uppercase; font-size:12px; color:rgba(234,240,255,0.92);">Canvas Brief</div>
+        <button class="pill" onclick="toggleOverlay(false)">Close</button>
+      </div>
+      <div style="padding: 16px; display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="card">
+          <p class="k">Inputs we need</p>
+          <p class="v">Data locations • privacy constraints • success metric • latency tolerance • budget • team capability</p>
+        </div>
+        <div class="card">
+          <p class="k">Outputs you receive</p>
+          <p class="v">Architecture sketch • deployment plan • risks + mitigations • next-step roadmap</p>
+        </div>
+        <div class="card">
+          <p class="k">Non-negotiables</p>
+          <p class="v">Ownership • auditability • minimal leakage • practical operations</p>
+        </div>
+        <div class="card">
+          <p class="k">Ethos</p>
+          <p class="v">Right-livelihood engineering: no dark patterns, no forced dependency.</p>
+        </div>
+      </div>
+      <div style="padding: 0 16px 16px 16px; display:flex; gap:10px; flex-wrap:wrap;">
+        <a class="btn" href="mailto:hello@bluehand.solutions?subject=Canvas%20Brief%20Request&body=Context%3A%0A%0AConstraints%3A%0A%0AGoal%3A%0A%0ATimeline%3A%0A" style="display:inline-block;">Send Brief Request</a>
+        <button class="btn alt" onclick="toggleOverlay(false)">Return</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ---------- Utilities ----------
+    const $ = (id) => document.getElementById(id);
+
+    function scrollToSection(id){
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.scrollIntoView({behavior:'smooth', block:'start'});
+    }
+
+    function toggleOverlay(on){
+      const o = $('overlay');
+      o.style.display = on ? 'block' : 'none';
+    }
+
+    $('y').textContent = new Date().getFullYear();
+
+    // ---------- Canvas background: lattice + neural + "seal" ----------
+    const canvas = $('bg');
+    const ctx = canvas.getContext('2d', { alpha: true });
+
+    let W=0, H=0, DPR=1;
+    let nodes = [];
+    let pointer = { x: 0.5, y: 0.5, dx: 0, dy: 0, down:false, lastX:0, lastY:0 };
+
+    // interaction + state
+    const state = {
+      mode: 'calm', // calm | live
+      theme: 'neutral',
+      sealPulse: 0,
+      burst: 0,
+      scroll: 0,
+      linkCount: 0,
+      fps: 0,
+      lastT: performance.now(),
+    };
+
+    function setMode(m){
+      state.mode = m;
+      $('modeBtn').textContent = `Mode: ${m === 'calm' ? 'Calm' : 'Live'}`;
+      $('modeBtn').setAttribute('aria-pressed', m === 'live' ? 'true' : 'false');
+    }
+
+    function toggleMode(){
+      setMode(state.mode === 'calm' ? 'live' : 'calm');
+    }
+
+    function focusTheme(t){
+      state.theme = t;
+      // a small feedback pulse
+      state.sealPulse = Math.min(1, state.sealPulse + 0.45);
+    }
+
+    function pulseSeal(){
+      state.sealPulse = Math.min(1, state.sealPulse + 0.85);
+    }
+
+    function spawnBurst(){
+      state.burst = Math.min(1, state.burst + 0.85);
+      // spawn a constellation cluster around center
+      const cx = W*0.5, cy = H*0.32;
+      for(let i=0;i<18;i++){
+        nodes.push(makeNode(cx + (Math.random()-0.5)*240, cy + (Math.random()-0.5)*220, true));
+      }
+      // cap size
+      if(nodes.length > 180) nodes.splice(0, nodes.length - 180);
+    }
+
+    function makeNode(x, y, isSpark=false){
+      const speed = isSpark ? 0.9 : 0.35;
+      return {
+        x: x ?? Math.random()*W,
+        y: y ?? Math.random()*H,
+        vx: (Math.random()-0.5)*speed,
+        vy: (Math.random()-0.5)*speed,
+        r: (isSpark ? 0.9 : 1.1) + Math.random()*(isSpark ? 1.2 : 1.8),
+        life: isSpark ? (220 + Math.random()*240) : Infinity,
+        kind: isSpark ? 'spark' : 'node'
+      };
+    }
+
+    function resize(){
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      W = Math.floor(window.innerWidth);
+      H = Math.floor(window.innerHeight);
+      canvas.width = Math.floor(W * DPR);
+      canvas.height = Math.floor(H * DPR);
+      canvas.style.width = W+'px';
+      canvas.style.height = H+'px';
+      ctx.setTransform(DPR,0,0,DPR,0,0);
+
+      const count = Math.floor((W*H) / 22000); // density
+      const base = Math.max(34, Math.min(120, count));
+      nodes = new Array(base).fill(0).map(() => makeNode());
+    }
+
+    function onPointerMove(e){
+      const t = e.touches && e.touches[0];
+      const clientX = t ? t.clientX : e.clientX;
+      const clientY = t ? t.clientY : e.clientY;
+
+      const x = clientX / W;
+      const y = clientY / H;
+
+      // smooth input
+      pointer.dx += (x - pointer.x) * 0.10;
+      pointer.dy += (y - pointer.y) * 0.10;
+
+      if(pointer.down){
+        const dx = clientX - pointer.lastX;
+        const dy = clientY - pointer.lastY;
+        // drag adds a gentle field impulse
+        for(let i=0;i<nodes.length;i++){
+          const n = nodes[i];
+          const dist = Math.hypot(n.x - clientX, n.y - clientY);
+          if(dist < 220){
+            n.vx += dx * 0.0007;
+            n.vy += dy * 0.0007;
+          }
+        }
+        pointer.lastX = clientX;
+        pointer.lastY = clientY;
+      }
+    }
+
+    function onPointerDown(e){
+      const t = e.touches && e.touches[0];
+      const x = t ? t.clientX : e.clientX;
+      const y = t ? t.clientY : e.clientY;
+      pointer.down = true;
+      pointer.lastX = x;
+      pointer.lastY = y;
+
+      // click spawns sparks
+      for(let i=0;i<10;i++) nodes.push(makeNode(x + (Math.random()-0.5)*30, y + (Math.random()-0.5)*30, true));
+      if(nodes.length > 180) nodes.splice(0, nodes.length - 180);
+    }
+
+    function onPointerUp(){ pointer.down = false; }
+
+    function onScroll(){
+      const maxScroll = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+      state.scroll = window.scrollY / maxScroll;
+    }
+
+    window.addEventListener('resize', resize);
+    window.addEventListener('mousemove', onPointerMove, { passive:true });
+    window.addEventListener('touchmove', onPointerMove, { passive:true });
+    window.addEventListener('mousedown', onPointerDown, { passive:true });
+    window.addEventListener('touchstart', onPointerDown, { passive:true });
+    window.addEventListener('mouseup', onPointerUp, { passive:true });
+    window.addEventListener('touchend', onPointerUp, { passive:true });
+    window.addEventListener('scroll', onScroll, { passive:true });
+
+    window.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      if(k === 'm') toggleMode();
+      if(k === 's') pulseSeal();
+      if(k === 'b') spawnBurst();
+      if(k === 'escape') toggleOverlay(false);
+    });
+
+    function themeColor(){
+      // returns [r,g,b] base used for link glow
+      switch(state.theme){
+        case 'sovereign': return [127,180,255];
+        case 'pipeline': return [255,181,90];
+        case 'mesh': return [255,93,125];
+        case 'interface': return [200,220,255];
+        case 'research': return [170,210,255];
+        case 'startup': return [255,200,135];
+        case 'ip': return [255,135,170];
+        case 'privacy': return [170,255,220];
+        default: return [127,180,255];
+      }
+    }
+
+    function step(t){
+      const dt = Math.min(0.05, (t - state.lastT) / 1000);
+      state.lastT = t;
+      state.fps = Math.round(1 / Math.max(1e-6, dt));
+
+      // update pointer with inertia
+      pointer.x += pointer.dx; pointer.y += pointer.dy;
+      pointer.dx *= 0.86; pointer.dy *= 0.86;
+
+      // decay pulses
+      state.sealPulse = Math.max(0, state.sealPulse - dt*0.7);
+      state.burst = Math.max(0, state.burst - dt*0.4);
+
+      // clear
+      ctx.clearRect(0,0,W,H);
+
+      // background vignette depends on scroll (more depth as you go down)
+      const depth = 0.18 + state.scroll*0.22;
+      const vg = ctx.createRadialGradient(W*0.45, H*0.22, 40, W*0.5, H*0.52, Math.max(W,H)*0.85);
+      vg.addColorStop(0, `rgba(127,180,255,${0.10 + depth*0.06})`);
+      vg.addColorStop(0.45, `rgba(20,30,70,${0.03 + depth*0.04})`);
+      vg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = vg;
+      ctx.fillRect(0,0,W,H);
+
+      // drift field (parallax influence) + mode intensity
+      const intensity = state.mode === 'live' ? 1.45 : 1.0;
+      const px = (pointer.x - 0.5) * 12 * intensity;
+      const py = (pointer.y - 0.5) * 12 * intensity;
+
+      // update nodes
+      for(let i=0;i<nodes.length;i++){
+        const n = nodes[i];
+        const jitter = state.mode === 'live' ? 0.10 : 0.06;
+        n.vx += (Math.random()-0.5) * jitter * dt;
+        n.vy += (Math.random()-0.5) * jitter * dt;
+
+        // gentle damping
+        n.vx *= 0.985;
+        n.vy *= 0.985;
+
+        n.x += (n.vx + px*0.003) * (1 + state.scroll*0.2);
+        n.y += (n.vy + py*0.003) * (1 + state.scroll*0.2);
+
+        // wrap
+        if(n.x < -30) n.x = W+30;
+        if(n.x > W+30) n.x = -30;
+        if(n.y < -30) n.y = H+30;
+        if(n.y > H+30) n.y = -30;
+
+        // lifespan for sparks
+        if(n.life !== Infinity){
+          n.life -= 60 * dt;
+          if(n.life <= 0){
+            nodes.splice(i,1);
+            i--;
+          }
+        }
+      }
+
+      // connections
+      const maxDist = Math.min(230, Math.max(130, W*0.18));
+      const baseCol = themeColor();
+      const r = baseCol[0], g = baseCol[1], b = baseCol[2];
+      const linkBoost = (state.mode === 'live' ? 1.2 : 1.0) + state.sealPulse*0.8;
+
+      state.linkCount = 0;
+
+      for(let i=0;i<nodes.length;i++){
+        const a = nodes[i];
+
+        // node glow
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, a.r, 0, Math.PI*2);
+        const alphaNode = a.kind === 'spark' ? 0.22 : 0.16;
+        ctx.fillStyle = `rgba(200,220,255,${alphaNode})`;
+        ctx.fill();
+
+        for(let j=i+1;j<nodes.length;j++){
+          const bN = nodes[j];
+          const dx = a.x-bN.x, dy = a.y-bN.y;
+          const d = Math.hypot(dx,dy);
+          if(d > maxDist) continue;
+
+          const t01 = 1 - (d/maxDist);
+          const aCol = (0.07*t01)*linkBoost;
+          ctx.strokeStyle = `rgba(${r},${g},${b},${aCol})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(bN.x, bN.y);
+          ctx.stroke();
+          state.linkCount++;
+        }
+      }
+
+      // central "seal" field: orbital ring + tri-spiral hints
+      const cx = W*0.5 + px*2.6;
+      const cy = H*(0.28 + state.scroll*0.08) + py*2.2;
+
+      const pulse = state.sealPulse;
+      const ringA = 0.10 + pulse*0.12;
+      ctx.strokeStyle = `rgba(255,255,255,${ringA})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, 150 + pulse*20, 76 + pulse*10, 0.22, 0, Math.PI*2);
+      ctx.stroke();
+
+      // tri-spiral arcs (subtle, inspired by your triquetra piece)
+      const triA = 0.08 + pulse*0.16;
+      const rad = 26 + pulse*8;
+      for(let k=0;k<3;k++){
+        const ang = (Math.PI*2/3)*k + (t*0.00035) * (state.mode==='live'?1.2:0.7);
+        const ox = Math.cos(ang) * (38 + pulse*10);
+        const oy = Math.sin(ang) * (22 + pulse*6);
+        ctx.strokeStyle = k===0 ? `rgba(255,93,125,${triA})` : (k===1 ? `rgba(255,181,90,${triA})` : `rgba(127,180,255,${triA})`);
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(cx+ox, cy+oy, rad, 0, Math.PI*2);
+        ctx.stroke();
+      }
+
+      // lattice "frame" suggestion (inspired by the grid-tunnel images)
+      const frameA = 0.06 + state.scroll*0.10;
+      ctx.strokeStyle = `rgba(127,180,255,${frameA})`;
+      ctx.lineWidth = 1;
+      const fx = 26, fy = 24;
+      ctx.beginPath();
+      ctx.moveTo(fx, fy);
+      ctx.lineTo(W-fx, fy);
+      ctx.lineTo(W-fx, H-fy);
+      ctx.lineTo(fx, H-fy);
+      ctx.closePath();
+      ctx.stroke();
+
+      // subtle star noise
+      for(let k=0;k<10;k++){
+        const x = (Math.random()*W);
+        const y = (Math.random()*H);
+        ctx.fillStyle = 'rgba(255,255,255,0.03)';
+        ctx.fillRect(x,y,1,1);
+      }
+
+      // HUD kv
+      const kv = $('kv');
+      if(kv){
+        kv.textContent = `nodes: ${nodes.length} • links: ${state.linkCount} • mode: ${state.mode}`;
+      }
+
+      requestAnimationFrame(step);
+    }
+
+    // init
+    function init(){
+      resize();
+      onScroll();
+      setMode('calm');
+      requestAnimationFrame(step);
+    }
+
+    init();
+  </script>
+</body>
+</html>

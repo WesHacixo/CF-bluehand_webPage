@@ -1,0 +1,49 @@
+## Security Headers for Cloudflare Pages Deployment
+## Documentation: https://developers.cloudflare.com/pages/platform/headers
+
+/*
+  # Content Security Policy (strict mode for inline scripts)
+  Content-Security-Policy: default-src 'self'; script-src 'unsafe-inline' 'self'; style-src 'unsafe-inline' 'self'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self' mailto:;
+  
+  # Prevent clickjacking attacks
+  X-Frame-Options: DENY
+  
+  # Prevent MIME type sniffing
+  X-Content-Type-Options: nosniff
+  
+  # Control referrer information
+  Referrer-Policy: strict-origin-when-cross-origin
+  
+  # Permissions policy (disable unnecessary features)
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=()
+  
+  # Cache control for HTML (revalidate on every request)
+  Cache-Control: public, max-age=0, must-revalidate
+
+/index.html
+  # Additional cache control for main page
+  Cache-Control: public, max-age=0, must-revalidate
+
+/*.css
+  # Cache CSS files for 1 year (immutable)
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.js
+  # Cache JavaScript files for 1 year (immutable)
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.svg
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+/*.gif
+  # Cache images for 1 year
+  Cache-Control: public, max-age=31536000, immutable
+
+/*.woff
+/*.woff2
+/*.ttf
+/*.eot
+  # Cache fonts for 1 year
+  Cache-Control: public, max-age=31536000, immutable
