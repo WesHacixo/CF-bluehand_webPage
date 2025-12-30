@@ -8,7 +8,5 @@ https://www.bluehand.solutions/* https://bluehand.solutions/:splat 301!
 http://bluehand.solutions/* https://bluehand.solutions/:splat 301!
 
 # SPA fallback (if needed for future expansion)
-/*  /index.html  200
-
-# Custom 404 (create 404.html if needed)
-# /*  /404.html  404
+# Note: Cloudflare Pages automatically serves 404.html for 404 errors
+# /*  /index.html  200

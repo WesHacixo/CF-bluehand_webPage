@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  
+  <!-- Primary Meta Tags -->
+  <title>404 — Page Not Found | Bluehand.Solutions</title>
+  <meta name="title" content="404 — Page Not Found | Bluehand.Solutions">
+  <meta name="description" content="The page you're looking for doesn't exist. Return to Bluehand.Solutions.">
+  <meta name="robots" content="noindex, follow">
+  
+  <!-- Canonical URL -->
+  <link rel="canonical" href="/404.html">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%2307102a' stroke='%237fb4ff' stroke-width='2'/%3E%3Ccircle cx='50' cy='50' r='20' fill='none' stroke='%237fb4ff' stroke-width='1' opacity='0.6'/%3E%3C/svg%3E">
+  
+  <style>
+    :root{
+      --bg0:#050814;
+      --bg1:#07102a;
+      --ink:#eaf0ff;
+      --muted:#a9b7e6;
+      --glass: rgba(10, 18, 45, 0.55);
+      --stroke: rgba(255,255,255,0.12);
+      --accent:#7fb4ff;
+      --accent2:#ffb55a;
+      --accent3:#ff5d7d;
+      --radius: 18px;
+      --shadow: 0 18px 60px rgba(0,0,0,0.35);
+    }
+
+    *{ box-sizing:border-box; }
+    html,body{ 
+      height:100%; 
+      margin:0; 
+      background: radial-gradient(1200px 900px at 40% 20%, var(--bg1), var(--bg0)); 
+      color:var(--ink); 
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; 
+      -webkit-font-smoothing: antialiased; 
+      -moz-osx-font-smoothing: grayscale; 
+      text-rendering: optimizeLegibility; 
+    }
+
+    .shell{
+      position:relative;
+      z-index:1;
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
+      padding: clamp(18px, 3vw, 40px);
+      gap: 22px;
+      align-items:center;
+      justify-content:center;
+    }
+
+    header{
+      position:absolute;
+      top: clamp(18px, 3vw, 40px);
+      left: clamp(18px, 3vw, 40px);
+      right: clamp(18px, 3vw, 40px);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 14px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap: 12px;
+      user-select:none;
+    }
+
+    .mark{
+      width:34px;height:34px;border-radius:999px;
+      background:
+        radial-gradient(circle at 30% 30%, rgba(127,180,255,.9), rgba(127,180,255,.05) 60%),
+        radial-gradient(circle at 70% 70%, rgba(255,181,90,.6), rgba(255,181,90,.03) 58%),
+        radial-gradient(circle at 40% 75%, rgba(255,93,125,.55), rgba(255,93,125,.03) 62%);
+      border: 1px solid rgba(255,255,255,0.18);
+      box-shadow: 0 0 32px rgba(127,180,255,0.20);
+      position:relative;
+      overflow:hidden;
+    }
+
+    .mark:before{
+      content:"";
+      position:absolute; inset:6px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.18);
+      opacity:0.7;
+    }
+    .mark:after{
+      content:"";
+      position:absolute; inset:9px;
+      border-radius:999px;
+      border:1px dashed rgba(255,255,255,0.12);
+      opacity:0.6;
+      animation: spin 12s linear infinite;
+    }
+    @keyframes spin{ to{ transform:rotate(360deg);} }
+
+    .brand h1{
+      font-size: 14px;
+      letter-spacing: 0.22em;
+      margin:0;
+      text-transform:uppercase;
+      color: rgba(234,240,255,0.95);
+    }
+    .brand .sub{
+      font-size: 12px;
+      margin-top:2px;
+      color: var(--muted);
+      letter-spacing: 0.12em;
+      text-transform:uppercase;
+    }
+
+    nav{
+      display:flex;
+      gap: 10px;
+      align-items:center;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+
+    .pill{
+      border:1px solid var(--stroke);
+      background: rgba(10, 18, 45, 0.25);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 10px 12px;
+      border-radius: 999px;
+      color: rgba(234,240,255,0.9);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      text-decoration:none;
+      transition: transform .15s ease, border-color .15s ease, background .15s ease;
+      user-select:none;
+      cursor:pointer;
+      white-space:nowrap;
+    }
+    .pill:hover,.pill:focus-visible{ 
+      transform: translateY(-1px); 
+      border-color: rgba(127,180,255,0.35); 
+      background: rgba(10,18,45,0.35); 
+      outline:2px solid rgba(127,180,255,0.5); 
+      outline-offset:2px; 
+    }
+
+    .error-content{
+      text-align:center;
+      max-width: 600px;
+      padding: clamp(20px, 4vw, 40px);
+    }
+
+    .error-code{
+      font-size: clamp(80px, 12vw, 140px);
+      font-weight: 700;
+      line-height: 1;
+      margin: 0;
+      background: linear-gradient(135deg, var(--accent), var(--accent2), var(--accent3));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.02em;
+    }
+
+    .error-title{
+      font-size: clamp(24px, 3.5vw, 36px);
+      margin: 20px 0 12px 0;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+      color: rgba(234,240,255,0.95);
+    }
+
+    .error-message{
+      font-size: clamp(14px, 1.5vw, 17px);
+      line-height: 1.6;
+      color: rgba(234,240,255,0.78);
+      margin: 0 0 32px 0;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .panel{
+      border:1px solid var(--stroke);
+      background: var(--glass);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-radius: var(--radius);
+      padding: clamp(24px, 3vw, 36px);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      position:relative;
+      width: 100%;
+    }
+
+    .fade{
+      position:absolute;
+      inset:-1px;
+      pointer-events:none;
+      background:
+        radial-gradient(600px 300px at 25% 0%, rgba(127,180,255,0.18), rgba(0,0,0,0) 60%),
+        radial-gradient(400px 240px at 80% 30%, rgba(255,181,90,0.12), rgba(0,0,0,0) 55%),
+        radial-gradient(420px 280px at 35% 85%, rgba(255,93,125,0.10), rgba(0,0,0,0) 60%);
+      opacity:0.9;
+    }
+
+    .btn{
+      border:1px solid rgba(127,180,255,0.35);
+      background: rgba(127,180,255,0.12);
+      color: var(--ink);
+      padding: 14px 20px;
+      border-radius: 12px;
+      text-decoration:none;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      font-size: 13px;
+      transition: transform .15s ease, background .15s ease, border-color .15s ease;
+      cursor:pointer;
+      user-select:none;
+      display:inline-block;
+    }
+    .btn:hover,.btn:focus-visible{ 
+      transform: translateY(-1px); 
+      background: rgba(127,180,255,0.18); 
+      border-color: rgba(127,180,255,0.55); 
+      outline:2px solid rgba(127,180,255,0.5); 
+      outline-offset:2px; 
+    }
+
+    .links{
+      display:flex;
+      gap: 12px;
+      flex-wrap:wrap;
+      justify-content:center;
+      margin-top: 24px;
+    }
+
+    .link-item{
+      color: rgba(234,240,255,0.85);
+      text-decoration:none;
+      font-size: 14px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      transition: color .15s ease, background .15s ease;
+    }
+    .link-item:hover,.link-item:focus-visible{
+      color: var(--accent);
+      background: rgba(127,180,255,0.08);
+      outline:2px solid rgba(127,180,255,0.3);
+      outline-offset:2px;
+    }
+
+    @media (max-width: 600px){
+      header{
+        flex-direction:column;
+        align-items:flex-start;
+      }
+      nav{
+        width:100%;
+        justify-content:flex-start;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      .mark:after{ animation:none; }
+      .btn, .pill, .link-item{ transition:none; }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="shell">
+    <header>
+      <div class="brand" aria-label="Bluehand brand">
+        <div class="mark" aria-hidden="true"></div>
+        <div>
+          <h1>BLUEHAND.SOLUTIONS</h1>
+          <div class="sub">Own Your Intelligence</div>
+        </div>
+      </div>
+
+      <nav aria-label="Primary navigation">
+        <a class="pill" href="/">Home</a>
+        <a class="pill" href="/#work">Work</a>
+        <a class="pill" href="/#audit">Sovereignty Audit</a>
+        <a class="pill" href="mailto:hello@bluehand.solutions" aria-label="Send email to Bluehand">Email</a>
+      </nav>
+    </header>
+
+    <main class="error-content">
+      <div class="panel">
+        <div class="fade" aria-hidden="true"></div>
+        <h1 class="error-code" aria-label="404">404</h1>
+        <h2 class="error-title">Page Not Found</h2>
+        <p class="error-message">
+          The page you're looking for doesn't exist or has been moved. 
+          The path you followed may have been broken, or the content may have been relocated.
+        </p>
+        
+        <div class="links">
+          <a href="/" class="btn">Return Home</a>
+        </div>
+
+        <div class="links" style="margin-top: 20px;">
+          <a href="/#work" class="link-item">Our Work</a>
+          <a href="/#audit" class="link-item">Sovereignty Audit</a>
+          <a href="mailto:hello@bluehand.solutions" class="link-item">Contact Us</a>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

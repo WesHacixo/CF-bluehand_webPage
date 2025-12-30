@@ -233,16 +233,17 @@
   font-weight: 500;
 }
 
+/* Updated card styles with more padding for better spacing */
 .card {
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(0, 0, 0, 0.18);
   border-radius: 14px;
-  padding: 12px;
+  padding: 14px 16px;
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
 
 .card:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   border-color: rgba(127, 180, 255, 0.28);
   background: rgba(0, 0, 0, 0.22);
 }
@@ -252,18 +253,19 @@
   text-transform: uppercase;
   letter-spacing: 0.14em;
   color: rgba(234, 240, 255, 0.85);
-  margin: 0 0 6px 0;
+  margin: 0 0 8px 0;
 }
 
 .card .v {
   margin: 0;
   color: rgba(169, 183, 230, 0.95);
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
+/* Updated item styles with more padding */
 .item {
-  padding: 12px;
+  padding: 14px 16px;
   border-radius: 14px;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(0, 0, 0, 0.16);
@@ -271,7 +273,7 @@
 }
 
 .item:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
   border-color: rgba(127, 180, 255, 0.22);
 }
 
@@ -281,14 +283,14 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: rgba(234, 240, 255, 0.9);
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .item span {
   display: block;
   color: rgba(169, 183, 230, 0.95);
   font-size: 13px;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 .kbd {

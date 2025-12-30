@@ -35,7 +35,7 @@ function HeroSectionInner() {
   return (
     <section className="panel" id="work">
       <div className="fade" />
-      <h2 className="text-[clamp(30px,4.6vw,56px)] my-[6px_0_10px_0] leading-[1.02] tracking-[-0.02em] text-balance">
+      <h2 className="text-[clamp(28px,4.2vw,52px)] mt-1 mb-4 leading-[1.05] tracking-[-0.02em] text-balance">
         Private Intelligence.
         <br />
         Elegant Systems.
@@ -45,7 +45,7 @@ function HeroSectionInner() {
         pipelines, and governed agent meshes—so your organization stops renting its mind.
       </p>
 
-      <div className="cta-row flex gap-2.5 flex-wrap mt-[18px] items-center">
+      <div className="cta-row flex gap-3 flex-wrap mt-6 items-center">
         <button className="btn" onClick={handleOpenContactForm}>
           Request a Sovereignty Audit
         </button>
@@ -54,7 +54,7 @@ function HeroSectionInner() {
         </a>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mt-[18px]" id="proof">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-8" id="proof">
         {services.map((service) => (
           <ServiceCard
             key={service.key}
