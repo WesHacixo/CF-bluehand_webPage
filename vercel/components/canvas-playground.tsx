@@ -102,23 +102,22 @@ function CanvasPlaygroundInner() {
   const dimensionsRef = useRef({ W: 0, H: 0 })
   const frameRef = useRef<number>(0)
   const lastTimeRef = useRef(performance.now())
+  const isVisibleRef = useRef(true)
 
-  // New state for interactivity features
+  // Interactivity state
   const [clickCount, setClickCount] = useState(0)
-  const [rotation3D, setRotation3D] = useState({ x: 0, y: 0, z: 0 })
-  const [isRotating, setIsRotating] = useState(false)
+  const [rotation3D, setRotation3D] = useState({ x: 0, y: 0 })
   const [currentConstellation, setCurrentConstellation] = useState(0)
-  const rotationStartRef = useRef({ x: 0, y: 0 })
+  const rotationStartRef = useRef({ x: 0, y: 0, active: false })
 
-  // Mobile gesture tracking
+  // Touch gesture state
   const touchStateRef = useRef({
-    touches: [] as { id: number; x: number; y: number }[],
-    lastPinchDistance: 0,
-    lastRotationAngle: 0,
+    initialDistance: 0,
+    initialAngle: 0,
+    isTwoFinger: false,
   })
 
   const { mode, theme, toggleMode, pulseSeal, spawnBurst } = useApp()
-
   const themeColor = THEME_COLORS[theme] || THEME_COLORS.neutral
 
   const makeNode = useCallback(
@@ -237,6 +236,8 @@ function CanvasPlaygroundInner() {
     }
 
     const onPointerDown = (e: MouseEvent | TouchEvent) => {
+      if (touchStateRef.current.isTwoFinger) return // Don't interfere with gestures
+
       const coords = getCanvasCoords(e)
       pointerRef.current.down = true
       pointerRef.current.x = coords.x
@@ -262,23 +263,23 @@ function CanvasPlaygroundInner() {
     const onContextMenu = (e: MouseEvent) => {
       e.preventDefault()
       const coords = getCanvasCoords(e)
-      rotationStartRef.current = { x: coords.x, y: coords.y }
-      setIsRotating(true)
+      rotationStartRef.current = { x: coords.x, y: coords.y, active: true }
     }
 
     const onPointerMove = (e: MouseEvent | TouchEvent) => {
+      if (touchStateRef.current.isTwoFinger) return // Don't interfere with gestures
+
       const coords = getCanvasCoords(e)
 
-      // Handle 3D rotation
-      if (isRotating && e instanceof MouseEvent) {
+      // Handle right-click 3D rotation
+      if (rotationStartRef.current.active && e instanceof MouseEvent && e.buttons === 2) {
         const dx = coords.x - rotationStartRef.current.x
         const dy = coords.y - rotationStartRef.current.y
         setRotation3D((prev) => ({
-          x: prev.x + dy * 0.01,
-          y: prev.y + dx * 0.01,
-          z: prev.z,
+          x: prev.x + dy * 0.005,
+          y: prev.y + dx * 0.005,
         }))
-        rotationStartRef.current = { x: coords.x, y: coords.y }
+        rotationStartRef.current = { x: coords.x, y: coords.y, active: true }
         return
       }
 
@@ -370,95 +371,56 @@ function CanvasPlaygroundInner() {
         }
       }
       pointerRef.current.down = false
-      setIsRotating(false)
+      rotationStartRef.current.active = false
     }
 
-    // Advanced touch gesture handlers for mobile
+    // Touch handlers for mobile gestures
     const onTouchStart = (e: TouchEvent) => {
-      const rect = canvas.getBoundingClientRect()
-      touchStateRef.current.touches = Array.from(e.touches).map((t) => ({
-        id: t.identifier,
-        x: t.clientX - rect.left,
-        y: t.clientY - rect.top,
-      }))
-
-      if (e.touches.length === 1) {
-        // Single touch - treat as click
+      if (e.touches.length === 2) {
+        // Two fingers = rotation gesture
+        touchStateRef.current.isTwoFinger = true
+        const rect = canvas.getBoundingClientRect()
+        const t1 = e.touches[0]
+        const t2 = e.touches[1]
+        const dx = t2.clientX - t1.clientX
+        const dy = t2.clientY - t1.clientY
+        touchStateRef.current.initialAngle = Math.atan2(dy, dx)
+        pointerRef.current.down = false // Cancel any drag
+      } else if (e.touches.length === 1) {
+        // Single touch = normal interaction
+        touchStateRef.current.isTwoFinger = false
         onPointerDown(e)
-      } else if (e.touches.length === 2) {
-        // Two-finger gesture - calculate initial distance and angle
-        const [t1, t2] = touchStateRef.current.touches
-        const dx = t2.x - t1.x
-        const dy = t2.y - t1.y
-        touchStateRef.current.lastPinchDistance = Math.sqrt(dx * dx + dy * dy)
-        touchStateRef.current.lastRotationAngle = Math.atan2(dy, dx)
-        setIsRotating(true)
       }
     }
 
     const onTouchMove = (e: TouchEvent) => {
-      const rect = canvas.getBoundingClientRect()
-      const currentTouches = Array.from(e.touches).map((t) => ({
-        id: t.identifier,
-        x: t.clientX - rect.left,
-        y: t.clientY - rect.top,
-      }))
-
-      if (e.touches.length === 1) {
-        // Single touch - treat as drag
-        onPointerMove(e)
-      } else if (e.touches.length === 2) {
-        // Two-finger gestures
-        const [t1, t2] = currentTouches
-        const dx = t2.x - t1.x
-        const dy = t2.y - t1.y
-        const distance = Math.sqrt(dx * dx + dy * dy)
-        const angle = Math.atan2(dy, dx)
-
-        // Pinch to zoom effect (modify scale via rotation)
-        if (touchStateRef.current.lastPinchDistance > 0) {
-          const pinchDelta = distance - touchStateRef.current.lastPinchDistance
-          setRotation3D((prev) => ({
-            ...prev,
-            z: prev.z + pinchDelta * 0.002,
-          }))
-        }
-
+      if (e.touches.length === 2 && touchStateRef.current.isTwoFinger) {
         // Two-finger rotation
-        if (touchStateRef.current.lastRotationAngle !== 0) {
-          const angleDelta = angle - touchStateRef.current.lastRotationAngle
-          setRotation3D((prev) => ({
-            x: prev.x + Math.sin(angleDelta) * 0.5,
-            y: prev.y + Math.cos(angleDelta) * 0.5,
-            z: prev.z,
-          }))
-        }
+        const t1 = e.touches[0]
+        const t2 = e.touches[1]
+        const dx = t2.clientX - t1.clientX
+        const dy = t2.clientY - t1.clientY
+        const currentAngle = Math.atan2(dy, dx)
+        const angleDelta = currentAngle - touchStateRef.current.initialAngle
 
-        touchStateRef.current.lastPinchDistance = distance
-        touchStateRef.current.lastRotationAngle = angle
+        setRotation3D((prev) => ({
+          x: prev.x + Math.sin(angleDelta) * 0.3,
+          y: prev.y + Math.cos(angleDelta) * 0.3,
+        }))
+
+        touchStateRef.current.initialAngle = currentAngle
+      } else if (e.touches.length === 1 && !touchStateRef.current.isTwoFinger) {
+        // Single touch drag
+        onPointerMove(e)
       }
-
-      touchStateRef.current.touches = currentTouches
     }
 
     const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        touchStateRef.current.isTwoFinger = false
+      }
       if (e.touches.length === 0) {
-        touchStateRef.current.touches = []
-        touchStateRef.current.lastPinchDistance = 0
-        touchStateRef.current.lastRotationAngle = 0
-        setIsRotating(false)
         onPointerUp(e)
-      } else if (e.touches.length === 1) {
-        // Reset to single touch
-        const rect = canvas.getBoundingClientRect()
-        touchStateRef.current.touches = Array.from(e.touches).map((t) => ({
-          id: t.identifier,
-          x: t.clientX - rect.left,
-          y: t.clientY - rect.top,
-        }))
-        touchStateRef.current.lastPinchDistance = 0
-        touchStateRef.current.lastRotationAngle = 0
-        setIsRotating(false)
       }
     }
 
@@ -472,20 +434,18 @@ function CanvasPlaygroundInner() {
     canvas.addEventListener("touchend", onTouchEnd)
     canvas.addEventListener("touchcancel", onTouchEnd)
 
-    // Page visibility optimization
-    let isVisible = true
+    // Visibility API for performance
     const handleVisibilityChange = () => {
-      isVisible = !document.hidden
-      if (isVisible) {
+      isVisibleRef.current = !document.hidden
+      if (isVisibleRef.current) {
         lastTimeRef.current = performance.now()
       }
     }
     document.addEventListener("visibilitychange", handleVisibilityChange)
 
-    // Animation loop with performance optimizations
+    // Animation loop
     const step = (t: number) => {
-      // Skip rendering if page is hidden
-      if (!isVisible) {
+      if (!isVisibleRef.current) {
         frameRef.current = requestAnimationFrame(step)
         return
       }
@@ -496,23 +456,22 @@ function CanvasPlaygroundInner() {
       const { W, H } = dimensionsRef.current
       ctx.clearRect(0, 0, W, H)
 
-      // Subtle background
+      // Background
       ctx.fillStyle = "rgba(5, 8, 20, 0.3)"
       ctx.fillRect(0, 0, W, H)
 
-      // Apply 3D rotation transforms
+      // Apply simple 3D rotation transform
       ctx.save()
       ctx.translate(W / 2, H / 2)
 
-      // Simple 3D projection
-      const cosX = Math.cos(rotation3D.x)
-      const sinX = Math.sin(rotation3D.x)
-      const cosY = Math.cos(rotation3D.y)
-      const sinY = Math.sin(rotation3D.y)
+      // Use CSS-like 3D transforms (rotateX and rotateY)
+      const perspective = 1000
+      const scaleX = Math.cos(rotation3D.y)
+      const scaleY = Math.cos(rotation3D.x)
+      const skewX = Math.sin(rotation3D.y) * 0.5
+      const skewY = Math.sin(rotation3D.x) * 0.5
 
-      // Apply rotation matrix (simplified 3D to 2D projection)
-      const scale = 0.5 + 0.5 * cosX
-      ctx.scale(scale * cosY, scale)
+      ctx.transform(scaleX, skewY, skewX, scaleY, 0, 0)
       ctx.translate(-W / 2, -H / 2)
 
       const nodes = nodesRef.current
@@ -733,7 +692,7 @@ function CanvasPlaygroundInner() {
       canvas.removeEventListener("touchend", onTouchEnd)
       canvas.removeEventListener("touchcancel", onTouchEnd)
     }
-  }, [makeNode, spawnCluster, spawnConstellation, themeColor, mode, clickCount, currentConstellation, rotation3D, isRotating])
+  }, [makeNode, spawnCluster, spawnConstellation, themeColor, mode, clickCount, currentConstellation, rotation3D])
 
   return (
     <section className="panel relative" ref={containerRef}>
@@ -745,7 +704,7 @@ function CanvasPlaygroundInner() {
           </h3>
           <p className="m-0 mt-1 text-xs text-muted leading-relaxed">
             <span className="hidden sm:inline">Drag slowly to attract • Drag fast to scatter • Right-click + drag to rotate 3D</span>
-            <span className="sm:hidden">Tap to spawn • 2 fingers to rotate • Pinch to zoom</span>
+            <span className="sm:hidden">Tap to spawn • Drag to attract • 2 fingers to rotate 3D</span>
           </p>
           <p className="m-0 mt-1 text-xs text-[rgba(127,180,255,0.8)] font-mono">
             Clicks: {clickCount} • Every 5 clicks spawns {CONSTELLATIONS[currentConstellation].name}
