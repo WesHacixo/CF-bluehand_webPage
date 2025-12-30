@@ -1,0 +1,11 @@
+# <type>(<scope>): <subject>
+# 
+# <body>
+#
+# <footer>
+#
+# Types: feat, fix, docs, style, refactor, perf, test, chore, deploy
+# Scope: canvas, header, footer, vercel, cloudflare, docs
+# Subject: 50 chars or less, imperative mood, lowercase
+# Body: Explain WHAT and WHY, wrap at 72 chars
+# Footer: Breaking changes, issue references
