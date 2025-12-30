@@ -66,6 +66,8 @@ See `vercel/README.md` for detailed instructions.
 
 ## Documentation
 
+- `PROJECT_RULES.md` - **Git workflow, commit conventions, and project rules**
+- `BRANCH_STRATEGY.md` - Branch organization and usage
 - `docs/DEPLOYMENT.md` - Complete deployment guide
 - `docs/OPTIMIZATION.md` - Performance optimizations
 - `cloudflare/README.md` - Cloudflare-specific docs
