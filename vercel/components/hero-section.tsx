@@ -40,7 +40,7 @@ function HeroSectionInner() {
         <br />
         Elegant Systems.
       </h2>
-      <p className="m-0 text-[rgba(234,240,255,0.88)] max-w-[62ch] text-[clamp(14px,1.35vw,17px)] leading-relaxed">
+      <p className="m-0 text-[rgba(212,223,245,0.88)] max-w-[62ch] text-[clamp(14px,1.35vw,17px)] leading-relaxed">
         Bluehand designs and deploys <strong>sovereign intelligence stacks</strong>—local-first models, secure data
         pipelines, and governed agent meshes—so your organization stops renting its mind.
       </p>

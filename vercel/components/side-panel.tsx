@@ -42,11 +42,8 @@ function AudienceItem({
 
   return (
     <div className="item cursor-pointer group" onClick={handleClick}>
-      <b className="flex items-center justify-between">
+      <b>
         {title}
-        <span className="text-[10px] font-normal opacity-50 group-hover:opacity-80 transition-opacity">
-          Learn more →
-        </span>
       </b>
       <span>{description}</span>
     </div>
@@ -68,8 +65,8 @@ function SidePanelInner() {
   return (
     <aside className="panel side">
       <div className="fade" />
-      <h3 className="m-0 mb-2 text-sm tracking-[0.18em] uppercase text-[rgba(234,240,255,0.90)]">Who this is for</h3>
-      <p className="m-0 mb-[14px] text-[rgba(234,240,255,0.78)] text-[13px] leading-relaxed">
+      <h3 className="m-0 mb-2 text-sm tracking-[0.18em] uppercase text-[rgba(212,223,245,0.90)]">Who this is for</h3>
+      <p className="m-0 mb-[14px] text-[rgba(212,223,245,0.78)] text-[13px] leading-relaxed">
         Teams with proprietary data, privacy requirements, or simple refusal to be platform-dependent.
       </p>
 

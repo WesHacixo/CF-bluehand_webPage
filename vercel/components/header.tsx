@@ -19,8 +19,8 @@ function HeaderInner() {
       <div className="brand flex items-center gap-3 select-none" aria-label="Bluehand brand">
         <BrandMark />
         <div>
-          <h1 className="text-sm tracking-[0.22em] m-0 uppercase text-[rgba(234,240,255,0.95)]">BLUEHAND.SOLUTIONS</h1>
-          <div className="text-xs mt-0.5 text-[#a9b7e6] tracking-[0.12em] uppercase">Own Your Intelligence</div>
+          <h1 className="text-sm tracking-[0.22em] m-0 uppercase text-[rgba(212,223,245,0.95)]">BLUEHAND.SOLUTIONS</h1>
+          <div className="text-xs mt-0.5 text-[rgba(139,155,196,0.9)] tracking-[0.12em] uppercase">Own Your Intelligence</div>
         </div>
       </div>
 

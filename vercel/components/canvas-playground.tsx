@@ -1,6 +1,6 @@
 "use client"
 
-import { memo, useRef, useEffect, useCallback } from "react"
+import { memo, useRef, useEffect, useCallback, useImperativeHandle, forwardRef, useState } from "react"
 import { useApp } from "./app-provider"
 
 interface PlaygroundNode {
@@ -13,6 +13,17 @@ interface PlaygroundNode {
   kind: "node" | "spark" | "trail"
   hue: number
   age: number
+  colorTheme: string
+  constellationId?: number // Track which constellation this node belongs to
+  phase?: number // For algorithmic movement
+}
+
+const COLOR_THEMES: Record<string, [number, number, number]> = {
+  red: [255, 93, 125],
+  green: [93, 255, 125],
+  blue: [127, 180, 255],
+  gold: [255, 215, 0],
+  current: [127, 180, 255], // Will be set dynamically
 }
 
 const THEME_COLORS: Record<string, [number, number, number]> = {
@@ -27,7 +38,18 @@ const THEME_COLORS: Record<string, [number, number, number]> = {
   neutral: [127, 180, 255],
 }
 
-function CanvasPlaygroundInner() {
+// Performance constants
+const MAX_NODES = 80
+const MAX_SPARKS = 25
+const MAX_TRAILS = 20
+const MAX_CONSTELLATIONS = 5
+
+export interface CanvasPlaygroundHandle {
+  resetConstellation: () => void
+  dropConstellation: (x?: number, y?: number) => void
+}
+
+const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const nodesRef = useRef<PlaygroundNode[]>([])
@@ -39,50 +61,150 @@ function CanvasPlaygroundInner() {
     lastY: 0,
     velocity: { x: 0, y: 0 },
     trail: [] as { x: number; y: number; age: number }[],
+    pinchDistance: 0,
+    pinchStart: 0,
+    isPinching: false,
+    touchIds: [] as number[],
   })
   const dimensionsRef = useRef({ W: 0, H: 0 })
   const frameRef = useRef<number>(0)
   const lastTimeRef = useRef(performance.now())
+  const connectionFrameRef = useRef(0)
+  const constellationIdRef = useRef(0)
+  const [selectedColor, setSelectedColor] = useState<string>("current")
 
-  const { mode, theme, toggleMode, pulseSeal, spawnBurst } = useApp()
+  const { mode, theme, sealPulse, burst, toggleMode, pulseSeal, spawnBurst, setTheme } = useApp()
 
-  const themeColor = THEME_COLORS[theme] || THEME_COLORS.neutral
+  // Update current color theme based on app theme
+  useEffect(() => {
+    COLOR_THEMES.current = THEME_COLORS[theme] || THEME_COLORS.neutral
+  }, [theme])
+
+  const getColorForTheme = useCallback(
+    (colorTheme: string): [number, number, number] => {
+      if (colorTheme === "current") {
+        return THEME_COLORS[theme] || THEME_COLORS.neutral
+      }
+      return COLOR_THEMES[colorTheme] || COLOR_THEMES.blue
+    },
+    [theme],
+  )
 
   const makeNode = useCallback(
-    (x: number, y: number, vx = 0, vy = 0, kind: "node" | "spark" | "trail" = "node"): PlaygroundNode => {
+    (
+      x: number,
+      y: number,
+      vx = 0,
+      vy = 0,
+      kind: "node" | "spark" | "trail" = "node",
+      colorTheme = selectedColor,
+      constellationId?: number,
+    ): PlaygroundNode => {
       const baseR = kind === "trail" ? 1.5 : kind === "spark" ? 2 : 2.5
       return {
         x,
         y,
-        vx: vx + (Math.random() - 0.5) * (kind === "spark" ? 2 : 0.5),
-        vy: vy + (Math.random() - 0.5) * (kind === "spark" ? 2 : 0.5),
-        r: baseR + Math.random() * (kind === "trail" ? 1 : 2),
-        life: kind === "trail" ? 60 : kind === "spark" ? 180 + Math.random() * 120 : Number.POSITIVE_INFINITY,
+        vx: vx + (Math.random() - 0.5) * (kind === "spark" ? 1.5 : 0.4),
+        vy: vy + (Math.random() - 0.5) * (kind === "spark" ? 1.5 : 0.4),
+        r: baseR + Math.random() * (kind === "trail" ? 0.8 : 1.5),
+        life: kind === "trail" ? 50 : kind === "spark" ? 150 + Math.random() * 100 : Number.POSITIVE_INFINITY,
         kind,
-        hue: Math.random() * 60 - 30, // Color variation
+        hue: Math.random() * 40 - 20,
         age: 0,
+        colorTheme,
+        constellationId,
+        phase: Math.random() * Math.PI * 2, // For algorithmic patterns
       }
     },
-    [],
+    [selectedColor],
   )
+
+  const dropConstellation = useCallback(
+    (x?: number, y?: number) => {
+      const { W, H } = dimensionsRef.current
+      if (W === 0 || H === 0) return
+
+      const cx = x ?? W * 0.5
+      const cy = y ?? H * 0.5
+      const constellationId = constellationIdRef.current++
+      const nodeCount = window.innerWidth < 768 ? 12 : 18
+      const colorTheme = selectedColor
+
+      // Create a new constellation
+      for (let i = 0; i < nodeCount; i++) {
+        const angle = (Math.PI * 2 * i) / nodeCount
+        const radius = Math.min(W, H) * 0.12
+        const spread = Math.min(W, H) * 0.06
+        const nx = cx + Math.cos(angle) * (radius + (Math.random() - 0.5) * spread)
+        const ny = cy + Math.sin(angle) * (radius + (Math.random() - 0.5) * spread)
+        const phase = (Math.PI * 2 * i) / nodeCount
+        nodesRef.current.push(makeNode(nx, ny, 0, 0, "node", colorTheme, constellationId))
+      }
+
+      // Enforce limits - remove oldest constellations if needed
+      const constellations = new Set(nodesRef.current.map((n) => n.constellationId).filter((id) => id !== undefined))
+      if (constellations.size > MAX_CONSTELLATIONS) {
+        const sortedIds = Array.from(constellations).sort()
+        const toRemove = sortedIds.slice(0, sortedIds.length - MAX_CONSTELLATIONS)
+        nodesRef.current = nodesRef.current.filter((n) => !toRemove.includes(n.constellationId ?? -1))
+      }
+    },
+    [makeNode, selectedColor],
+  )
+
+  const resetConstellation = useCallback(() => {
+    const { W, H } = dimensionsRef.current
+    if (W === 0 || H === 0) return
+
+    nodesRef.current = []
+    constellationIdRef.current = 0
+    dropConstellation()
+  }, [dropConstellation])
+
+  useImperativeHandle(ref, () => ({
+    resetConstellation,
+    dropConstellation,
+  }))
 
   const spawnCluster = useCallback(
     (x: number, y: number, count: number, vx = 0, vy = 0) => {
-      for (let i = 0; i < count; i++) {
-        const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5
-        const dist = 10 + Math.random() * 30
+      const maxSparks = MAX_SPARKS
+      const currentSparks = nodesRef.current.filter((n) => n.kind === "spark").length
+      const availableSlots = Math.max(0, maxSparks - currentSparks)
+      const spawnCount = Math.min(count, availableSlots)
+
+      for (let i = 0; i < spawnCount; i++) {
+        const angle = (Math.PI * 2 * i) / spawnCount + Math.random() * 0.4
+        const dist = 8 + Math.random() * 20
         const nx = x + Math.cos(angle) * dist
         const ny = y + Math.sin(angle) * dist
         nodesRef.current.push(
-          makeNode(nx, ny, vx * 0.3 + Math.cos(angle) * 0.5, vy * 0.3 + Math.sin(angle) * 0.5, "spark"),
+          makeNode(nx, ny, vx * 0.25 + Math.cos(angle) * 0.4, vy * 0.25 + Math.sin(angle) * 0.4, "spark", selectedColor),
         )
       }
-      // Cap nodes
-      if (nodesRef.current.length > 300) {
-        nodesRef.current.splice(0, nodesRef.current.length - 300)
+
+      // Enforce limits
+      const nodes = nodesRef.current
+      const sparks = nodes.filter((n) => n.kind === "spark")
+      const trails = nodes.filter((n) => n.kind === "trail")
+
+      if (sparks.length > MAX_SPARKS) {
+        sparks.splice(MAX_SPARKS)
+      }
+      if (trails.length > MAX_TRAILS) {
+        trails.splice(MAX_TRAILS)
+      }
+      if (nodes.length > MAX_NODES) {
+        let toRemove = nodes.length - MAX_NODES
+        for (let i = nodes.length - 1; i >= 0 && toRemove > 0; i--) {
+          if (nodes[i].kind !== "node") {
+            nodes.splice(i, 1)
+            toRemove--
+          }
+        }
       }
     },
-    [makeNode],
+    [makeNode, selectedColor],
   )
 
   useEffect(() => {
@@ -95,9 +217,13 @@ function CanvasPlaygroundInner() {
 
     const resize = () => {
       const rect = container.getBoundingClientRect()
-      const DPR = Math.min(window.devicePixelRatio || 1, 2)
-      const W = Math.floor(rect.width)
-      const H = Math.floor(rect.height)
+      const isMobile = window.innerWidth < 768
+      const DPR = Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2)
+
+      const maxW = window.innerWidth
+      const maxH = Math.min(window.innerHeight * 0.6, 600)
+      const W = Math.floor(Math.min(rect.width, maxW))
+      const H = Math.floor(Math.min(rect.height, maxH))
 
       canvas.width = Math.floor(W * DPR)
       canvas.height = Math.floor(H * DPR)
@@ -107,26 +233,31 @@ function CanvasPlaygroundInner() {
 
       dimensionsRef.current = { W, H }
 
-      // Seed initial constellation
       if (nodesRef.current.length === 0) {
-        for (let i = 0; i < 25; i++) {
-          nodesRef.current.push(makeNode(Math.random() * W, Math.random() * H, 0, 0, "node"))
-        }
+        resetConstellation()
       }
     }
 
     resize()
+    const resizeObserver = new ResizeObserver(resize)
+    resizeObserver.observe(container)
     window.addEventListener("resize", resize)
 
-    const getCanvasCoords = (e: MouseEvent | TouchEvent) => {
+    const getCanvasCoords = (e: MouseEvent | TouchEvent, index = 0) => {
       const rect = canvas.getBoundingClientRect()
-      const t = "touches" in e ? e.touches[0] || e.changedTouches[0] : null
+      const t = "touches" in e ? e.touches[index] || e.changedTouches[index] : null
       const clientX = t ? t.clientX : (e as MouseEvent).clientX
       const clientY = t ? t.clientY : (e as MouseEvent).clientY
       return {
         x: clientX - rect.left,
         y: clientY - rect.top,
       }
+    }
+
+    const getDistance = (touch1: Touch, touch2: Touch) => {
+      const dx = touch2.clientX - touch1.clientX
+      const dy = touch2.clientY - touch1.clientY
+      return Math.sqrt(dx * dx + dy * dy)
     }
 
     const onPointerDown = (e: MouseEvent | TouchEvent) => {
@@ -139,78 +270,105 @@ function CanvasPlaygroundInner() {
       pointerRef.current.velocity = { x: 0, y: 0 }
       pointerRef.current.trail = []
 
-      // Spawn initial burst on click
-      spawnCluster(coords.x, coords.y, 8)
+      if ("touches" in e && e.touches.length === 2) {
+        // Pinch gesture
+        pointerRef.current.isPinching = true
+        pointerRef.current.pinchDistance = getDistance(e.touches[0], e.touches[1])
+        pointerRef.current.pinchStart = pointerRef.current.pinchDistance
+        pointerRef.current.touchIds = [e.touches[0].identifier, e.touches[1].identifier]
+      } else {
+        spawnCluster(coords.x, coords.y, 6)
+      }
     }
 
     const onPointerMove = (e: MouseEvent | TouchEvent) => {
       const coords = getCanvasCoords(e)
+
+      if ("touches" in e && e.touches.length === 2 && pointerRef.current.isPinching) {
+        // Handle pinch zoom
+        const currentDistance = getDistance(e.touches[0], e.touches[1])
+        const scale = currentDistance / pointerRef.current.pinchStart
+        const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2 - canvas.getBoundingClientRect().left
+        const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2 - canvas.getBoundingClientRect().top
+
+        // Apply scale to nodes
+        const nodes = nodesRef.current
+        for (let i = 0; i < nodes.length; i++) {
+          const n = nodes[i]
+          const dx = n.x - centerX
+          const dy = n.y - centerY
+          n.x = centerX + dx * scale
+          n.y = centerY + dy * scale
+        }
+
+        pointerRef.current.pinchStart = currentDistance
+        return
+      }
 
       if (pointerRef.current.down) {
         const dx = coords.x - pointerRef.current.lastX
         const dy = coords.y - pointerRef.current.lastY
         const speed = Math.sqrt(dx * dx + dy * dy)
 
-        // Update velocity with smoothing
         pointerRef.current.velocity.x = pointerRef.current.velocity.x * 0.7 + dx * 0.3
         pointerRef.current.velocity.y = pointerRef.current.velocity.y * 0.7 + dy * 0.3
 
-        // Add trail points
         pointerRef.current.trail.push({ x: coords.x, y: coords.y, age: 0 })
-        if (pointerRef.current.trail.length > 50) {
+        if (pointerRef.current.trail.length > 30) {
           pointerRef.current.trail.shift()
         }
 
-        // Spawn trail particles based on speed
-        if (speed > 3) {
+        if (speed > 2 && nodesRef.current.filter((n) => n.kind === "trail").length < MAX_TRAILS) {
           nodesRef.current.push(
             makeNode(
               coords.x,
               coords.y,
-              pointerRef.current.velocity.x * 0.1,
-              pointerRef.current.velocity.y * 0.1,
+              pointerRef.current.velocity.x * 0.08,
+              pointerRef.current.velocity.y * 0.08,
               "trail",
+              selectedColor,
             ),
           )
         }
 
-        // Apply force to nearby nodes - attraction when slow, repulsion when fast
+        // Enhanced force application with constellation grouping
         const nodes = nodesRef.current
-        const attractionRadius = 180
-        const repulsionRadius = 80
+        const attractionRadius = 150
+        const repulsionRadius = 60
 
-        for (let i = 0; i < nodes.length; i++) {
+        for (let i = 0; i < nodes.length; i += 1) {
           const n = nodes[i]
           const ndx = n.x - coords.x
           const ndy = n.y - coords.y
-          const dist = Math.sqrt(ndx * ndx + ndy * ndy)
+          const distSq = ndx * ndx + ndy * ndy
 
-          if (dist < attractionRadius && dist > 0) {
+          if (distSq < attractionRadius * attractionRadius && distSq > 0) {
+            const dist = Math.sqrt(distSq)
             const normalizedDx = ndx / dist
             const normalizedDy = ndy / dist
 
-            if (speed > 15 && dist < repulsionRadius) {
-              // Fast drag = explosive repulsion
-              const force = (1 - dist / repulsionRadius) * 0.8
-              n.vx += normalizedDx * force * (speed * 0.05)
-              n.vy += normalizedDy * force * (speed * 0.05)
-            } else if (speed < 8) {
-              // Slow drag = gentle attraction (gravitational pull)
-              const force = (1 - dist / attractionRadius) * 0.15
+            // Stronger force for nodes in the same constellation
+            const sameConstellation = n.constellationId !== undefined
+            const forceMultiplier = sameConstellation ? 1.3 : 1.0
+
+            if (speed > 12 && distSq < repulsionRadius * repulsionRadius) {
+              const force = (1 - dist / repulsionRadius) * 0.6 * forceMultiplier
+              n.vx += normalizedDx * force * (speed * 0.04)
+              n.vy += normalizedDy * force * (speed * 0.04)
+            } else if (speed < 6) {
+              const force = (1 - dist / attractionRadius) * 0.12 * forceMultiplier
               n.vx -= normalizedDx * force
               n.vy -= normalizedDy * force
             } else {
-              // Medium speed = swirl effect
-              const force = (1 - dist / attractionRadius) * 0.1
-              n.vx += normalizedDy * force * Math.sign(dx)
-              n.vy -= normalizedDx * force * Math.sign(dx)
+              const force = (1 - dist / attractionRadius) * 0.08 * forceMultiplier
+              n.vx += normalizedDy * force * Math.sign(dx) * 0.5
+              n.vy -= normalizedDx * force * Math.sign(dx) * 0.5
             }
           }
         }
 
-        // Spawn sparks on fast movement
-        if (speed > 20 && Math.random() > 0.5) {
-          spawnCluster(coords.x, coords.y, 3, pointerRef.current.velocity.x, pointerRef.current.velocity.y)
+        if (speed > 15 && Math.random() > 0.6) {
+          spawnCluster(coords.x, coords.y, 2, pointerRef.current.velocity.x, pointerRef.current.velocity.y)
         }
 
         pointerRef.current.lastX = coords.x
@@ -223,14 +381,18 @@ function CanvasPlaygroundInner() {
 
     const onPointerUp = (e: MouseEvent | TouchEvent) => {
       if (pointerRef.current.down) {
-        const vx = pointerRef.current.velocity.x
-        const vy = pointerRef.current.velocity.y
-        const speed = Math.sqrt(vx * vx + vy * vy)
+        if (pointerRef.current.isPinching) {
+          pointerRef.current.isPinching = false
+          pointerRef.current.touchIds = []
+        } else {
+          const vx = pointerRef.current.velocity.x
+          const vy = pointerRef.current.velocity.y
+          const speed = Math.sqrt(vx * vx + vy * vy)
 
-        // Release burst based on accumulated velocity
-        if (speed > 5) {
-          const coords = getCanvasCoords(e)
-          spawnCluster(coords.x, coords.y, Math.min(20, Math.floor(speed)), vx * 0.5, vy * 0.5)
+          if (speed > 4) {
+            const coords = getCanvasCoords(e)
+            spawnCluster(coords.x, coords.y, Math.min(12, Math.floor(speed * 0.8)), vx * 0.4, vy * 0.4)
+          }
         }
       }
       pointerRef.current.down = false
@@ -243,83 +405,160 @@ function CanvasPlaygroundInner() {
     canvas.addEventListener("touchstart", onPointerDown, { passive: true })
     canvas.addEventListener("touchmove", onPointerMove, { passive: true })
     canvas.addEventListener("touchend", onPointerUp)
+    canvas.addEventListener("touchcancel", onPointerUp)
 
-    // Animation loop
+    // Enhanced animation loop with algorithmic patterns
     const step = (t: number) => {
       const dt = Math.min(0.05, (t - lastTimeRef.current) / 1000)
       lastTimeRef.current = t
 
       const { W, H } = dimensionsRef.current
-      ctx.clearRect(0, 0, W, H)
+      if (W === 0 || H === 0) {
+        frameRef.current = requestAnimationFrame(step)
+        return
+      }
 
-      // Subtle background
+      ctx.clearRect(0, 0, W, H)
       ctx.fillStyle = "rgba(5, 8, 20, 0.3)"
       ctx.fillRect(0, 0, W, H)
 
       const nodes = nodesRef.current
-      const [r, g, b] = themeColor
       const isLive = mode === "live"
+      const currentPulse = sealPulse
+      const currentBurst = burst
       const maxDist = isLive ? 160 : 120
+      const pulseBoost = 1 + currentPulse * 0.3
+      const effectiveMaxDist = maxDist * pulseBoost
 
-      // Update and age trail
+      // Update trail
       const trail = pointerRef.current.trail
       for (let i = trail.length - 1; i >= 0; i--) {
         trail[i].age += dt * 60
-        if (trail[i].age > 30) {
+        if (trail[i].age > 25) {
           trail.splice(i, 1)
         }
       }
 
-      // Draw pointer trail when dragging
       if (pointerRef.current.down && trail.length > 1) {
         ctx.beginPath()
         ctx.moveTo(trail[0].x, trail[0].y)
         for (let i = 1; i < trail.length; i++) {
           ctx.lineTo(trail[i].x, trail[i].y)
         }
-        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.3)`
-        ctx.lineWidth = 2
+        const [r, g, b] = getColorForTheme(selectedColor)
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.25)`
+        ctx.lineWidth = 1.5
         ctx.lineCap = "round"
         ctx.stroke()
       }
 
-      // Update nodes
+      // Burst effect
+      if (currentBurst > 0.5) {
+        const cx = W * 0.5
+        const cy = H * 0.5
+        const burstCount = Math.min(10, Math.floor(currentBurst * 8))
+        for (let i = 0; i < burstCount; i++) {
+          const angle = (Math.PI * 2 * i) / burstCount + Math.random() * 0.2
+          const speed = 1.5 + Math.random() * 2
+          const nx = cx + Math.cos(angle) * 15
+          const ny = cy + Math.sin(angle) * 15
+          nodesRef.current.push(
+            makeNode(nx, ny, Math.cos(angle) * speed, Math.sin(angle) * speed, "spark", selectedColor),
+          )
+        }
+      }
+
+      // Update nodes with algorithmic patterns for live mode
       for (let i = nodes.length - 1; i >= 0; i--) {
         const n = nodes[i]
         n.age += dt * 60
 
-        // Apply physics
-        const friction = n.kind === "trail" ? 0.92 : 0.98
+        const friction = n.kind === "trail" ? 0.91 : 0.97
         n.vx *= friction
         n.vy *= friction
 
-        // Gentle random drift for permanent nodes
         if (n.kind === "node") {
-          n.vx += (Math.random() - 0.5) * 0.02
-          n.vy += (Math.random() - 0.5) * 0.02
+          const driftIntensity = isLive ? 0.025 : 0.015
+          n.vx += (Math.random() - 0.5) * driftIntensity
+          n.vy += (Math.random() - 0.5) * driftIntensity
+
+          // Algorithmic movement patterns in live mode
+          if (isLive && n.phase !== undefined) {
+            const time = t * 0.001
+            const patternSpeed = 0.8
+            const patternRadius = 8
+
+            // Orbital pattern
+            const orbitalX = Math.cos(n.phase + time * patternSpeed) * patternRadius
+            const orbitalY = Math.sin(n.phase + time * patternSpeed) * patternRadius
+
+            // Lissajous pattern variation
+            const lissajousX = Math.cos(n.phase * 2 + time * patternSpeed * 1.3) * patternRadius * 0.6
+            const lissajousY = Math.sin(n.phase * 3 + time * patternSpeed * 0.9) * patternRadius * 0.6
+
+            // Combine patterns
+            n.vx += (orbitalX + lissajousX) * 0.15
+            n.vy += (orbitalY + lissajousY) * 0.15
+
+            // Constellation cohesion - nodes in same constellation move together
+            if (n.constellationId !== undefined) {
+              const constellationNodes = nodes.filter(
+                (other) => other.constellationId === n.constellationId && other.kind === "node",
+              )
+              if (constellationNodes.length > 1) {
+                let centerX = 0
+                let centerY = 0
+                for (const other of constellationNodes) {
+                  centerX += other.x
+                  centerY += other.y
+                }
+                centerX /= constellationNodes.length
+                centerY /= constellationNodes.length
+
+                const dx = centerX - n.x
+                const dy = centerY - n.y
+                const dist = Math.sqrt(dx * dx + dy * dy)
+                if (dist > 0) {
+                  const cohesionForce = 0.08
+                  n.vx += (dx / dist) * cohesionForce
+                  n.vy += (dy / dist) * cohesionForce
+                }
+              }
+            }
+          }
+        }
+
+        if (currentPulse > 0.3) {
+          const dx = n.x - W * 0.5
+          const dy = n.y - H * 0.5
+          const distSq = dx * dx + dy * dy
+          if (distSq > 0) {
+            const dist = Math.sqrt(distSq)
+            const pulseForce = currentPulse * 0.12
+            n.vx += (dx / dist) * pulseForce * dt * 60
+            n.vy += (dy / dist) * pulseForce * dt * 60
+          }
         }
 
         n.x += n.vx
         n.y += n.vy
 
-        // Soft boundary bounce
-        const margin = 20
+        const margin = 15
         if (n.x < margin) {
           n.x = margin
-          n.vx *= -0.5
+          n.vx *= -0.4
         } else if (n.x > W - margin) {
           n.x = W - margin
-          n.vx *= -0.5
+          n.vx *= -0.4
         }
         if (n.y < margin) {
           n.y = margin
-          n.vy *= -0.5
+          n.vy *= -0.4
         } else if (n.y > H - margin) {
           n.y = H - margin
-          n.vy *= -0.5
+          n.vy *= -0.4
         }
 
-        // Lifespan
         if (n.life !== Number.POSITIVE_INFINITY) {
           n.life -= 60 * dt
           if (n.life <= 0) {
@@ -328,20 +567,18 @@ function CanvasPlaygroundInner() {
           }
         }
 
-        // Node merging - when nodes get very close, they can merge
-        if (n.kind === "spark" && n.age > 60) {
+        // Simplified merging
+        if (n.kind === "spark" && n.age > 50) {
           for (let j = 0; j < nodes.length; j++) {
-            if (i === j) continue
+            if (i === j || nodes[j].kind !== "node") continue
             const other = nodes[j]
-            if (other.kind !== "node") continue
             const dx = n.x - other.x
             const dy = n.y - other.y
-            const dist = Math.sqrt(dx * dx + dy * dy)
-            if (dist < 15) {
-              // Merge: transfer momentum and grow the node slightly
-              other.vx = (other.vx + n.vx * 0.3) * 0.8
-              other.vy = (other.vy + n.vy * 0.3) * 0.8
-              other.r = Math.min(6, other.r + 0.1)
+            const distSq = dx * dx + dy * dy
+            if (distSq < 144) {
+              other.vx = (other.vx + n.vx * 0.25) * 0.85
+              other.vy = (other.vy + n.vy * 0.25) * 0.85
+              other.r = Math.min(5, other.r + 0.08)
               nodes.splice(i, 1)
               break
             }
@@ -349,71 +586,103 @@ function CanvasPlaygroundInner() {
         }
       }
 
-      // Draw connections with glow effect
-      let linkCount = 0
-      ctx.lineWidth = 1
+      // Draw connections with color themes
+      connectionFrameRef.current++
+      if (connectionFrameRef.current % 1 === 0) {
+        ctx.lineWidth = 1
+        const maxDistSq = effectiveMaxDist * effectiveMaxDist
 
-      for (let i = 0; i < nodes.length; i++) {
-        const a = nodes[i]
-        if (a.kind === "trail") continue
+        for (let i = 0; i < nodes.length; i += 1) {
+          const a = nodes[i]
+          if (a.kind === "trail") continue
 
-        for (let j = i + 1; j < nodes.length; j++) {
-          const b = nodes[j]
-          if (b.kind === "trail") continue
+          for (let j = i + 1; j < nodes.length; j += 1) {
+            const b = nodes[j]
+            if (b.kind === "trail") continue
 
-          const dx = a.x - b.x
-          const dy = a.y - b.y
-          const dist = Math.sqrt(dx * dx + dy * dy)
+            const dx = a.x - b.x
+            const dy = a.y - b.y
+            const distSq = dx * dx + dy * dy
 
-          if (dist < maxDist) {
-            const alpha = (1 - dist / maxDist) * (a.kind === "spark" || b.kind === "spark" ? 0.15 : 0.25)
-            ctx.strokeStyle = `rgba(${r + a.hue}, ${g}, ${b.hue > 0 ? b : b}, ${alpha})`
-            ctx.beginPath()
-            ctx.moveTo(a.x, a.y)
-            ctx.lineTo(b.x, b.y)
-            ctx.stroke()
-            linkCount++
+            if (distSq < maxDistSq) {
+              const dist = Math.sqrt(distSq)
+              const t01 = 1 - dist / effectiveMaxDist
+              const baseAlpha = (a.kind === "spark" || b.kind === "spark" ? 0.15 : 0.22) * pulseBoost
+              const alpha = t01 * baseAlpha
+
+              // Use node's color theme
+              const [rA, gA, bA] = getColorForTheme(a.colorTheme)
+              const [rB, gB, bB] = getColorForTheme(b.colorTheme)
+
+              // Blend colors if different themes
+              const rFinal = (rA + rB) * 0.5
+              const gFinal = (gA + gB) * 0.5
+              const bFinal = (bA + bB) * 0.5
+
+              ctx.strokeStyle = `rgba(${rFinal}, ${gFinal}, ${bFinal}, ${alpha})`
+              ctx.lineWidth = 0.8 + t01 * 0.4
+              ctx.beginPath()
+              ctx.moveTo(a.x, a.y)
+              ctx.lineTo(b.x, b.y)
+              ctx.stroke()
+            }
           }
         }
       }
 
-      // Draw nodes with glow
+      // Draw nodes with their color themes
       for (let i = 0; i < nodes.length; i++) {
         const n = nodes[i]
+        if (n.kind === "trail") {
+          const alpha = Math.max(0, n.life / 50) * 0.5
+          const [r, g, b] = getColorForTheme(n.colorTheme)
+          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`
+          ctx.beginPath()
+          ctx.arc(n.x, n.y, n.r * (n.life / 50), 0, Math.PI * 2)
+          ctx.fill()
+          continue
+        }
+
         let alpha = 1
         let radius = n.r
 
-        if (n.kind === "trail") {
-          alpha = Math.max(0, n.life / 60) * 0.6
-          radius = n.r * (n.life / 60)
-        } else if (n.kind === "spark") {
-          alpha = Math.min(1, n.life / 100) * 0.8
+        if (n.kind === "spark") {
+          alpha = Math.min(1, n.life / 120) * 0.7
         }
 
-        // Glow
-        const gradient = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, radius * 3)
-        gradient.addColorStop(0, `rgba(${r + n.hue}, ${g}, ${b}, ${alpha * 0.4})`)
-        gradient.addColorStop(1, `rgba(${r + n.hue}, ${g}, ${b}, 0)`)
+        const [r, g, b] = getColorForTheme(n.colorTheme)
+        const hueShift = n.hue
+        const rGlow = Math.min(255, Math.max(0, r + hueShift * 0.3))
+        const gGlow = Math.min(255, Math.max(0, g + hueShift * 0.2))
+        const bGlow = Math.min(255, Math.max(0, b + hueShift * 0.35))
+
+        const glowRadius = radius * (2.5 + currentPulse * 1.2)
+        const gradient = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, glowRadius)
+        gradient.addColorStop(0, `rgba(${rGlow}, ${gGlow}, ${bGlow}, ${alpha * (0.4 + currentPulse * 0.25)})`)
+        gradient.addColorStop(0.7, `rgba(${rGlow}, ${gGlow}, ${bGlow}, ${alpha * 0.15})`)
+        gradient.addColorStop(1, `rgba(${rGlow}, ${gGlow}, ${bGlow}, 0)`)
         ctx.fillStyle = gradient
         ctx.beginPath()
-        ctx.arc(n.x, n.y, radius * 3, 0, Math.PI * 2)
+        ctx.arc(n.x, n.y, glowRadius, 0, Math.PI * 2)
         ctx.fill()
 
-        // Core
-        ctx.fillStyle = `rgba(${200 + n.hue}, 220, 255, ${alpha})`
+        const coreR = Math.min(255, Math.max(180, 200 + hueShift * 0.4))
+        const coreG = Math.min(255, Math.max(200, 220 + hueShift * 0.25))
+        const coreB = Math.min(255, Math.max(220, 255 + hueShift * 0.35))
+        ctx.fillStyle = `rgba(${coreR}, ${coreG}, ${coreB}, ${alpha})`
         ctx.beginPath()
-        ctx.arc(n.x, n.y, radius, 0, Math.PI * 2)
+        ctx.arc(n.x, n.y, radius * (1 + currentPulse * 0.15), 0, Math.PI * 2)
         ctx.fill()
       }
 
-      // Draw cursor influence area when dragging
       if (pointerRef.current.down) {
         const { x, y, velocity } = pointerRef.current
         const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y)
-        const radius = speed > 15 ? 80 : 180
+        const radius = speed > 12 ? 70 : 150
+        const [r, g, b] = getColorForTheme(selectedColor)
 
         const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius)
-        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${speed > 15 ? 0.15 : 0.08})`)
+        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${speed > 12 ? 0.12 : 0.06})`)
         gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`)
         ctx.fillStyle = gradient
         ctx.beginPath()
@@ -428,6 +697,7 @@ function CanvasPlaygroundInner() {
 
     return () => {
       cancelAnimationFrame(frameRef.current)
+      resizeObserver.disconnect()
       window.removeEventListener("resize", resize)
       canvas.removeEventListener("mousedown", onPointerDown)
       canvas.removeEventListener("mousemove", onPointerMove)
@@ -436,22 +706,51 @@ function CanvasPlaygroundInner() {
       canvas.removeEventListener("touchstart", onPointerDown)
       canvas.removeEventListener("touchmove", onPointerMove)
       canvas.removeEventListener("touchend", onPointerUp)
+      canvas.removeEventListener("touchcancel", onPointerUp)
     }
-  }, [makeNode, spawnCluster, themeColor, mode])
+  }, [makeNode, spawnCluster, mode, sealPulse, burst, selectedColor, getColorForTheme, resetConstellation, dropConstellation])
+
+  const colorOptions = ["red", "green", "blue", "gold", "current"]
 
   return (
     <section className="panel relative" ref={containerRef}>
       <div className="fade" />
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
         <div>
-          <h3 className="m-0 text-sm tracking-[0.18em] uppercase text-[rgba(234,240,255,0.90)]">
+          <h3 className="m-0 text-sm tracking-[0.18em] uppercase text-[rgba(212,223,245,0.90)]">
             Constellation Canvas
           </h3>
           <p className="m-0 mt-1 text-xs text-muted leading-relaxed">
-            Drag slowly to attract • Drag fast to scatter • Click to spawn
+            Drag slowly to attract • Drag fast to scatter • Click to spawn • Pinch to zoom
           </p>
         </div>
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
+          {/* Color selector button */}
+          <button
+            onClick={() => {
+              const currentIndex = colorOptions.indexOf(selectedColor)
+              const nextIndex = (currentIndex + 1) % colorOptions.length
+              setSelectedColor(colorOptions[nextIndex])
+            }}
+            className="btn alt text-[11px] px-3 py-2 flex items-center gap-1.5"
+            title="Change color theme"
+          >
+            <div className="flex gap-0.5">
+              {colorOptions.map((color) => {
+                const [r, g, b] = color === "current" ? getColorForTheme("current") : COLOR_THEMES[color]
+                const isActive = selectedColor === color
+                return (
+                  <div
+                    key={color}
+                    className={`w-2 h-2 rounded-full transition-all ${
+                      isActive ? "ring-1 ring-white/40 scale-125" : "opacity-50"
+                    }`}
+                    style={{ backgroundColor: `rgb(${r}, ${g}, ${b})` }}
+                  />
+                )
+              })}
+            </div>
+          </button>
           <button onClick={toggleMode} className="btn alt text-[11px] px-3 py-2">
             Mode: {mode === "calm" ? "Calm" : "Live"}
           </button>
@@ -465,11 +764,17 @@ function CanvasPlaygroundInner() {
       </div>
       <canvas
         ref={canvasRef}
-        className="w-full h-[280px] sm:h-[360px] rounded-xl cursor-crosshair touch-none"
-        style={{ background: "rgba(5, 8, 20, 0.5)" }}
+        className="w-full rounded-xl cursor-crosshair touch-none"
+        style={{
+          background: "rgba(5, 8, 20, 0.5)",
+          height: "min(60vh, 600px)",
+          maxHeight: "600px",
+        }}
       />
     </section>
   )
-}
+})
+
+CanvasPlaygroundInner.displayName = "CanvasPlayground"
 
 export const CanvasPlayground = memo(CanvasPlaygroundInner)

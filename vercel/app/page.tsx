@@ -1,3 +1,6 @@
+"use client"
+
+import { useRef } from "react"
 import { Header } from "@/components/header"
 import { HeroSection } from "@/components/hero-section"
 import { SidePanel } from "@/components/side-panel"
@@ -6,11 +9,13 @@ import { Footer } from "@/components/footer"
 import { CanvasBackground } from "@/components/canvas-background"
 import { CanvasBriefModal } from "@/components/canvas-brief-modal"
 import { ContactFormModal } from "@/components/contact-form-modal"
-import { CanvasPlayground } from "@/components/canvas-playground"
+import { CanvasPlayground, type CanvasPlaygroundHandle } from "@/components/canvas-playground"
 import { AppProvider } from "@/components/app-provider"
 import { ServiceDetailModalWrapper } from "@/components/service-detail-modal-wrapper"
 
 export default function Home() {
+  const canvasPlaygroundRef = useRef<CanvasPlaygroundHandle>(null)
+
   return (
     <AppProvider>
       <CanvasBackground />
@@ -20,8 +25,8 @@ export default function Home() {
           <HeroSection />
           <SidePanel />
         </main>
-        <AuditSection />
-        <CanvasPlayground />
+        <AuditSection canvasPlaygroundRef={canvasPlaygroundRef} />
+        <CanvasPlayground ref={canvasPlaygroundRef} />
         <Footer />
       </div>
       <CanvasBriefModal />

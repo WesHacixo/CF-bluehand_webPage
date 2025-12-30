@@ -19,9 +19,8 @@ function ServiceCardInner({ themeKey, title, description }: ServiceCardProps) {
 
   return (
     <div className="card cursor-pointer group" onClick={handleClick}>
-      <p className="k flex items-center justify-between">
+      <p className="k">
         {title}
-        <span className="text-[10px] opacity-50 group-hover:opacity-80 transition-opacity">Learn more →</span>
       </p>
       <p className="v">{description}</p>
     </div>

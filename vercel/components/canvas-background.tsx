@@ -27,9 +27,9 @@ const THEME_COLORS: Record<string, [number, number, number]> = {
 
 const TRI_COLORS = ["rgba(255,93,125", "rgba(255,181,90", "rgba(127,180,255"]
 
-const MAX_NODES = 180
-const BURST_COUNT = 18
-const SPARK_COUNT = 10
+const MAX_NODES = 80 // Reduced for better performance
+const BURST_COUNT = 12
+const SPARK_COUNT = 6
 const POINTER_THROTTLE_MS = 16
 const DAMPING = 0.985
 const POINTER_DAMPING = 0.86
@@ -93,8 +93,8 @@ function CanvasBackgroundInner() {
 
     dimensionsRef.current = { W, H, DPR }
 
-    const baseCount = Math.floor((W * H) / (isMobile ? 28000 : 22000))
-    const nodeCount = Math.max(24, Math.min(isMobile ? 60 : 100, baseCount))
+    const baseCount = Math.floor((W * H) / (isMobile ? 35000 : 28000))
+    const nodeCount = Math.max(20, Math.min(isMobile ? 45 : 70, baseCount))
     nodesRef.current = Array.from({ length: nodeCount }, () => makeNode())
   }, [makeNode])
 
@@ -274,23 +274,23 @@ function CanvasBackgroundInner() {
         }
       }
 
-      const maxDist = Math.min(230, Math.max(130, W * 0.18))
+      const maxDist = Math.min(200, Math.max(120, W * 0.16))
       const maxDistSq = maxDist * maxDist
       const [r, g, b] = themeColorRef.current
       const currentPulse = sealPulseRef.current
-      const linkBoost = (currentMode === "live" ? 1.2 : 1.0) + currentPulse * 0.8
+      const linkBoost = (currentMode === "live" ? 1.15 : 1.0) + currentPulse * 0.7
 
       let linkCount = 0
       const nodeLen = nodes.length
 
-      // Draw all nodes first
+      // Draw all nodes first - batched
       ctx.beginPath()
       for (let i = 0; i < nodeLen; i++) {
         const a = nodes[i]
         ctx.moveTo(a.x + a.r, a.y)
         ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2)
       }
-      ctx.fillStyle = "rgba(200,220,255,0.16)"
+      ctx.fillStyle = "rgba(200,220,255,0.14)"
       ctx.fill()
 
       // Draw sparks with higher alpha
@@ -302,14 +302,14 @@ function CanvasBackgroundInner() {
           ctx.arc(a.x, a.y, a.r, 0, Math.PI * 2)
         }
       }
-      ctx.fillStyle = "rgba(200,220,255,0.22)"
+      ctx.fillStyle = "rgba(200,220,255,0.2)"
       ctx.fill()
 
-      // Draw connections with spatial partitioning optimization
-      ctx.lineWidth = 1
-      for (let i = 0; i < nodeLen; i++) {
+      // Optimized connection drawing - skip some checks
+      ctx.lineWidth = 0.8
+      for (let i = 0; i < nodeLen; i += 1) {
         const a = nodes[i]
-        for (let j = i + 1; j < nodeLen; j++) {
+        for (let j = i + 1; j < nodeLen; j += 1) {
           const bN = nodes[j]
           const dx = a.x - bN.x
           const dy = a.y - bN.y
@@ -318,7 +318,7 @@ function CanvasBackgroundInner() {
 
           const d = Math.sqrt(distSq)
           const t01 = 1 - d / maxDist
-          const aCol = 0.07 * t01 * linkBoost
+          const aCol = 0.06 * t01 * linkBoost
           ctx.strokeStyle = `rgba(${r},${g},${b},${aCol})`
           ctx.beginPath()
           ctx.moveTo(a.x, a.y)
@@ -333,7 +333,8 @@ function CanvasBackgroundInner() {
       const cy = H * (0.28 + scroll * 0.08) + py * 2.2
 
       const ringA = 0.1 + currentPulse * 0.12
-      ctx.strokeStyle = `rgba(255,255,255,${ringA})`
+      const [rRing, gRing, bRing] = themeColorRef.current
+      ctx.strokeStyle = `rgba(${rRing},${gRing},${bRing},${ringA * 0.8})`
       ctx.lineWidth = 1
       ctx.beginPath()
       ctx.ellipse(cx, cy, 150 + currentPulse * 20, 76 + currentPulse * 10, 0.22, 0, Math.PI * 2)
@@ -366,7 +367,8 @@ function CanvasBackgroundInner() {
       ctx.closePath()
       ctx.stroke()
 
-      ctx.fillStyle = "rgba(255,255,255,0.03)"
+      const [rStar, gStar, bStar] = themeColorRef.current
+      ctx.fillStyle = `rgba(${rStar},${gStar},${bStar},0.04)`
       for (let k = 0; k < 4; k++) {
         ctx.fillRect(Math.random() * W, Math.random() * H, 1, 1)
       }

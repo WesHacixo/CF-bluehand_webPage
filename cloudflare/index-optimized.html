@@ -56,8 +56,8 @@
     :root{
       --bg0:#050814;
       --bg1:#07102a;
-      --ink:#eaf0ff;
-      --muted:#a9b7e6;
+      --ink:#d9e2f4;
+      --muted:#9fb0d5;
       --glass: rgba(10, 18, 45, 0.55);
       --stroke: rgba(255,255,255,0.12);
       --accent:#7fb4ff;
@@ -141,7 +141,7 @@
       letter-spacing: 0.22em;
       margin:0;
       text-transform:uppercase;
-      color: rgba(234,240,255,0.95);
+      color: rgba(220,228,244,0.95);
     }
     .brand .sub{
       font-size: 12px;
@@ -166,7 +166,7 @@
       -webkit-backdrop-filter: blur(10px);
       padding: 10px 12px;
       border-radius: 999px;
-      color: rgba(234,240,255,0.9);
+      color: rgba(220,228,244,0.9);
       font-size: 12px;
       letter-spacing: 0.12em;
       text-transform: uppercase;
@@ -208,7 +208,7 @@
 
     .hero p{
       margin: 0;
-      color: rgba(234,240,255,0.88);
+      color: rgba(218,226,242,0.88);
       max-width: 62ch;
       font-size: clamp(14px, 1.35vw, 17px);
       line-height: 1.55;
@@ -266,7 +266,7 @@
       font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.14em;
-      color: rgba(234,240,255,0.85);
+      color: rgba(218,226,242,0.84);
       margin:0 0 6px 0;
     }
     .card .v{
@@ -281,12 +281,12 @@
       font-size: 14px;
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: rgba(234,240,255,0.90);
+      color: rgba(218,226,242,0.88);
     }
 
     .side p{
       margin: 0 0 14px 0;
-      color: rgba(234,240,255,0.78);
+      color: rgba(218,226,242,0.76);
       font-size: 13px;
       line-height: 1.55;
     }
@@ -312,7 +312,7 @@
       font-size: 12px;
       letter-spacing: 0.12em;
       text-transform: uppercase;
-      color: rgba(234,240,255,0.90);
+      color: rgba(218,226,242,0.86);
       margin-bottom: 6px;
     }
     .item span{
@@ -367,7 +367,7 @@
       font-size: 12px;
       letter-spacing: 0.18em;
       text-transform: uppercase;
-      color: rgba(234,240,255,0.90);
+      color: rgba(218,226,242,0.86);
       margin:0 0 8px 0;
     }
     .hud .meta{
@@ -394,7 +394,7 @@
       left:-999px;
       top:10px;
       background: #0a122d;
-      color:#eaf0ff;
+      color:var(--ink);
       padding:10px 14px;
       border-radius:10px;
       border:1px solid rgba(255,255,255,0.18);
@@ -417,6 +417,26 @@
       main{ grid-template-columns: 1fr; }
       .hud{ left:14px; right:14px; justify-content:space-between; }
       .hud .box{ width: min(520px, 92vw); }
+    }
+
+    @media (max-width: 720px){
+      .shell{ padding: 16px 14px; gap: 16px; }
+      header{ flex-direction: column; align-items: flex-start; gap: 10px; }
+      nav{ width: 100%; justify-content: flex-start; gap: 8px; }
+      .pill{ width: 100%; text-align: center; }
+      .grid{ grid-template-columns: 1fr; }
+      .ctaRow{ flex-direction: column; align-items: stretch; }
+      .btn, .btn.alt{ width: 100%; text-align: center; justify-content: center; }
+      .hero p{ max-width: none; }
+    }
+
+    @media (max-width: 540px){
+      .panel{ padding: 16px; }
+      .hero h2{ font-size: clamp(24px, 7vw, 34px); line-height: 1.18; }
+      .hero p{ font-size: 15px; line-height: 1.5; }
+      .list{ gap: 10px; }
+      .hud{ position: static; margin-top: 12px; }
+      .hud .box{ width: 100%; }
     }
 
     @media (prefers-reduced-motion: reduce){
@@ -514,7 +534,7 @@
     <section class="panel" id="audit">
       <div class="fade" aria-hidden="true"></div>
       <h3 style="margin:0 0 10px 0; letter-spacing:.18em; text-transform:uppercase;">Sovereignty Audit</h3>
-      <p style="margin:0; color:rgba(234,240,255,0.84); line-height:1.55; max-width: 80ch;">
+      <p style="margin:0; color:rgba(218,226,242,0.82); line-height:1.55; max-width: 80ch;">
         A short, high-signal engagement to map your data, risk, and compute realities—then design a
         sovereign path: local-first where possible, secure hybrid where necessary, and governed throughout.
       </p>
@@ -558,7 +578,7 @@
       overflow:hidden;
     ">
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; padding: 14px 16px; border-bottom:1px solid rgba(255,255,255,0.10);">
-        <div id="briefTitle" style="letter-spacing:.18em; text-transform:uppercase; font-size:12px; color:rgba(234,240,255,0.92);">Canvas Brief</div>
+        <div id="briefTitle" style="letter-spacing:.18em; text-transform:uppercase; font-size:12px; color:rgba(218,226,242,0.88);">Canvas Brief</div>
         <button class="pill" type="button" id="closeBriefBtn" aria-label="Close canvas brief">Close</button>
       </div>
       <div style="padding: 16px; display:grid; grid-template-columns: 1fr 1fr; gap: 12px;">
