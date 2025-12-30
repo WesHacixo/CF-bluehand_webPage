@@ -66,12 +66,22 @@ See `vercel/README.md` for detailed instructions.
 
 ## Documentation
 
+- `.cursorrules` - **Cursor AI project rules and guidelines**
 - `PROJECT_RULES.md` - **Git workflow, commit conventions, and project rules**
 - `BRANCH_STRATEGY.md` - Branch organization and usage
 - `docs/DEPLOYMENT.md` - Complete deployment guide
 - `docs/OPTIMIZATION.md` - Performance optimizations
 - `cloudflare/README.md` - Cloudflare-specific docs
 - `vercel/README.md` - Vercel-specific docs
+
+## Git Hooks
+
+This repository includes git hooks for automated enforcement:
+- **pre-commit**: Branch protection, commit format validation, white text detection
+- **commit-msg**: Conventional commits format validation
+- **pre-push**: Production branch push warnings
+
+Hooks are automatically active when you clone the repository. See `.git/hooks/README.md` for details.
 
 ## License & Contact
 
