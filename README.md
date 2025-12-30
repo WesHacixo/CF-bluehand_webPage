@@ -31,7 +31,7 @@ CF-bluehand_webPage/
 
 ```bash
 cd cloudflare
-wrangler pages deploy ./ --project-name=bluehand-solutions
+bunx wrangler pages deploy ./ --project-name=bluehand-solutions --commit-dirty=true
 ```
 
 See `cloudflare/README.md` for detailed instructions.

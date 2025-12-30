@@ -5,14 +5,14 @@ This folder contains the static HTML version optimized for Cloudflare Pages depl
 ## Quick Start
 
 ```bash
-# 1. Install Wrangler (one-time setup)
-npm install -g wrangler
+# 1. Install Wrangler (one-time setup, if not using bunx)
+bun install -g wrangler
 
 # 2. Login to Cloudflare
-wrangler login
+bunx wrangler login
 
 # 3. Deploy
-wrangler pages deploy ./ --project-name=bluehand-solutions
+bunx wrangler pages deploy ./ --project-name=bluehand-solutions --commit-dirty=true
 ```
 
 **Done!** Your site is live at `https://[random-id].pages.dev`

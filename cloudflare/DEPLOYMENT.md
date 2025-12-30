@@ -82,14 +82,14 @@ bluehand-deploy/
 #### Alternative: Direct Upload
 
 ```bash
-# Install Wrangler CLI
-npm install -g wrangler
+# Install Wrangler CLI (if not using bunx)
+bun install -g wrangler
 
 # Login
-wrangler login
+bunx wrangler login
 
 # Deploy directly
-wrangler pages deploy ./ --project-name=bluehand-solutions
+bunx wrangler pages deploy ./ --project-name=bluehand-solutions --commit-dirty=true
 ```
 
 ### Method 2: Cloudflare Workers Sites
