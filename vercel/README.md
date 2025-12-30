@@ -2,50 +2,88 @@
 
 This folder contains the Next.js version of the Bluehand Solutions website, built for Vercel deployment.
 
-## Setup Instructions
+## Quick Start
 
-1. **Download the code from v0:**
-   - Go to https://v0.app/chat/jvj4BJIJ1Ad
-   - Look for a "Download" or "Export" button
-   - Download the ZIP file
-   - Extract all files into this `vercel/` directory
-
-2. **Or use the shadcn CLI:**
-   ```bash
-   cd vercel
-   bunx shadcn@latest add "https://v0.app/chat/b/b_VBoVCODABHr"
-   # Follow the prompts to set up the project
-   ```
-
-3. **Install dependencies:**
+1. **Install dependencies:**
    ```bash
    bun install
    ```
 
-4. **Run development server:**
+2. **Run development server:**
    ```bash
    bun dev
    ```
+   Visit http://localhost:3000
 
-5. **Deploy to Vercel:**
+3. **Build for production:**
+   ```bash
+   bun run build
+   ```
+
+4. **Deploy to Vercel:**
    ```bash
    bunx vercel
    ```
+   Or connect your GitHub repo to Vercel for automatic deployments.
 
 ## Project Structure
 
-Once the files are added, you should have:
-- `app/` - Next.js app directory
+- `app/` - Next.js 16 app directory (App Router)
+  - `page.tsx` - Main page component
+  - `layout.tsx` - Root layout
+  - `globals.css` - Global styles
+  - `api/` - API routes
 - `components/` - React components
-- `package.json` - Dependencies
+  - `canvas-background.tsx` - Interactive particle canvas
+  - `canvas-playground.tsx` - Constellation playground
+  - `contact-form-modal.tsx` - Contact form
+  - `app-provider.tsx` - React Context for state management
+  - `ui/` - shadcn/ui components
+- `hooks/` - Custom React hooks
+- `lib/` - Utility functions
+- `public/` - Static assets
+- `styles/` - Additional stylesheets
+- `package.json` - Dependencies (Next.js 16, React 19, Tailwind CSS v4)
 - `vercel.json` - Vercel configuration
-- `tailwind.config.js` - Tailwind CSS configuration
+- `tsconfig.json` - TypeScript configuration
+
+## Tech Stack
+
+- **Framework**: Next.js 16.0.10
+- **React**: 19.2.0
+- **TypeScript**: 5.x
+- **Styling**: Tailwind CSS v4.1.9
+- **UI Components**: Radix UI + shadcn/ui
+- **Package Manager**: bun (recommended)
 
 ## Features
 
-Based on the v0 chat, this version includes:
-- Next.js/React conversion with modular components
-- Interactive canvas with particle system
-- Contact form modal
-- Performance optimizations
-- Constellation canvas playground at the bottom
+- ✅ Next.js/React conversion with modular components
+- ✅ Interactive canvas with particle system and neural connections
+- ✅ Constellation canvas playground with drag interactions
+- ✅ Contact form modal with email integration
+- ✅ Performance optimizations (memoization, visibility API, throttling)
+- ✅ Dark theme with glassmorphism design
+- ✅ Responsive design
+- ✅ Keyboard shortcuts (M/S/B for mode/pulse/burst)
+
+## Development
+
+The project uses:
+- **bun** for package management (faster than npm/yarn)
+- **TypeScript** for type safety
+- **Tailwind CSS v4** for styling
+- **App Router** (Next.js 13+ routing)
+
+## Deployment
+
+Vercel will automatically detect this as a Next.js project. The `vercel.json` file configures:
+- Build command: `bun run build`
+- Dev command: `bun run dev`
+- Install command: `bun install`
+
+## See Also
+
+- `../README.md` - Main repository overview
+- `../cloudflare/README.md` - Cloudflare static version
+- `../docs/` - Shared documentation

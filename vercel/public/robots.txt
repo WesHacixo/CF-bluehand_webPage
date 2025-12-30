@@ -1,0 +1,10 @@
+# Bluehand.Solutions - Staging
+# Remove or modify Disallow when ready to go live
+
+User-agent: *
+Disallow: /
+
+# When ready to go live, replace with:
+# User-agent: *
+# Allow: /
+# Sitemap: https://bluehand.solutions/sitemap.xml

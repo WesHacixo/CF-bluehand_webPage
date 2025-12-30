@@ -1,0 +1,142 @@
+"use client"
+
+import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
+import type { ServiceKey } from "./service-detail-modal"
+
+type Mode = "calm" | "live"
+type Theme = "neutral" | "sovereign" | "pipeline" | "mesh" | "interface" | "research" | "startup" | "ip" | "privacy"
+
+interface AppState {
+  mode: Mode
+  theme: Theme
+  sealPulse: number
+  burst: number
+  isModalOpen: boolean
+  isContactFormOpen: boolean
+  selectedService: ServiceKey | null
+  isServiceDetailOpen: boolean
+  nodeCount: number
+  linkCount: number
+}
+
+interface AppContextType extends AppState {
+  toggleMode: () => void
+  setTheme: (theme: Theme) => void
+  pulseSeal: () => void
+  spawnBurst: () => void
+  openModal: () => void
+  closeModal: () => void
+  openContactForm: () => void
+  closeContactForm: () => void
+  openServiceDetail: (key: ServiceKey) => void
+  closeServiceDetail: () => void
+  updateStats: (nodes: number, links: number) => void
+  setSealPulse: (value: number) => void
+  setBurst: (value: number) => void
+}
+
+const AppContext = createContext<AppContextType | null>(null)
+
+export function useApp() {
+  const context = useContext(AppContext)
+  if (!context) {
+    throw new Error("useApp must be used within AppProvider")
+  }
+  return context
+}
+
+export function AppProvider({ children }: { children: ReactNode }) {
+  const [state, setState] = useState<AppState>({
+    mode: "calm",
+    theme: "neutral",
+    sealPulse: 0,
+    burst: 0,
+    isModalOpen: false,
+    isContactFormOpen: false,
+    selectedService: null,
+    isServiceDetailOpen: false,
+    nodeCount: 0,
+    linkCount: 0,
+  })
+
+  const toggleMode = useCallback(() => {
+    setState((prev) => ({ ...prev, mode: prev.mode === "calm" ? "live" : "calm" }))
+  }, [])
+
+  const setTheme = useCallback((theme: Theme) => {
+    setState((prev) => ({ ...prev, theme, sealPulse: Math.min(1, prev.sealPulse + 0.45) }))
+  }, [])
+
+  const pulseSeal = useCallback(() => {
+    setState((prev) => ({ ...prev, sealPulse: Math.min(1, prev.sealPulse + 0.85) }))
+  }, [])
+
+  const spawnBurst = useCallback(() => {
+    setState((prev) => ({ ...prev, burst: Math.min(1, prev.burst + 0.85) }))
+  }, [])
+
+  const openModal = useCallback(() => {
+    setState((prev) => ({ ...prev, isModalOpen: true }))
+  }, [])
+
+  const closeModal = useCallback(() => {
+    setState((prev) => ({ ...prev, isModalOpen: false }))
+  }, [])
+
+  const openContactForm = useCallback(() => {
+    setState((prev) => ({ ...prev, isContactFormOpen: true }))
+  }, [])
+
+  const closeContactForm = useCallback(() => {
+    setState((prev) => ({ ...prev, isContactFormOpen: false }))
+  }, [])
+
+  const openServiceDetail = useCallback((key: ServiceKey) => {
+    setState((prev) => ({
+      ...prev,
+      selectedService: key,
+      isServiceDetailOpen: true,
+      theme: key, // Also update theme for visual feedback
+      sealPulse: Math.min(1, prev.sealPulse + 0.3),
+    }))
+  }, [])
+
+  const closeServiceDetail = useCallback(() => {
+    setState((prev) => ({ ...prev, isServiceDetailOpen: false }))
+  }, [])
+
+  const updateStats = useCallback((nodes: number, links: number) => {
+    setState((prev) => ({ ...prev, nodeCount: nodes, linkCount: links }))
+  }, [])
+
+  const setSealPulse = useCallback((value: number) => {
+    setState((prev) => ({ ...prev, sealPulse: value }))
+  }, [])
+
+  const setBurst = useCallback((value: number) => {
+    setState((prev) => ({ ...prev, burst: value }))
+  }, [])
+
+  return (
+    <AppContext.Provider
+      value={{
+        ...state,
+        toggleMode,
+        setTheme,
+        pulseSeal,
+        spawnBurst,
+        openModal,
+        closeModal,
+        openContactForm,
+        closeContactForm,
+        openServiceDetail,
+        closeServiceDetail,
+        updateStats,
+        setSealPulse,
+        setBurst,
+      }}
+    >
+      {children}
+    </AppContext.Provider>
+  )
+}
