@@ -1274,21 +1274,21 @@ const CanvasPlaygroundInner = forwardRef<CanvasPlaygroundHandle>((_, ref) => {
       ctx.fillStyle = "rgba(5, 8, 20, 0.3)";
       ctx.fillRect(0, 0, W, H);
 
-      // Apply 3D rotation transforms
+      // Apply 3D rotation transforms only when actively rotating
       ctx.save();
-      ctx.translate(W / 2, H / 2);
-
-      // Simple 3D projection (use ref for performance)
       const rot = rotation3DRef.current;
-      const cosX = Math.cos(rot.x);
-      const sinX = Math.sin(rot.x);
-      const cosY = Math.cos(rot.y);
-      const sinY = Math.sin(rot.y);
+      const isRotating = isRotatingRef.current;
 
-      // Apply rotation matrix (simplified 3D to 2D projection)
-      const scale = 0.5 + 0.5 * cosX;
-      ctx.scale(scale * cosY, scale);
-      ctx.translate(-W / 2, -H / 2);
+      // Only apply global 3D transform if actively rotating (not by default)
+      if (isRotating && (Math.abs(rot.x) > 0.01 || Math.abs(rot.y) > 0.01)) {
+        ctx.translate(W / 2, H / 2);
+        const cosX = Math.cos(rot.x);
+        const cosY = Math.cos(rot.y);
+        // Apply rotation matrix (simplified 3D to 2D projection)
+        const scale = 0.5 + 0.5 * cosX;
+        ctx.scale(scale * cosY, scale);
+        ctx.translate(-W / 2, -H / 2);
+      }
 
       const nodes = nodesRef.current;
       const isLive = mode === "live";
