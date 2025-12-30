@@ -161,10 +161,18 @@ changes
    git checkout Vercel-pr0
    git merge vercel-dev
    git push origin Vercel-pr0
-   # Vercel auto-deploys
+   # Vercel auto-deploys from Vercel-pr0 branch
    ```
 
-3. **Verify:**
+3. **Manual Deploy (if needed):**
+   ```bash
+   cd vercel
+   bunx vercel --prod
+   ```
+   
+   **Note:** Uses `bunx vercel` for consistency with project tooling. Vercel auto-detects Next.js projects, so manual deployment is rarely needed when using Git integration.
+
+4. **Verify:**
    - Check deployment logs in Vercel dashboard
    - Test at attest.blue-hand.org
    - Verify all assets load correctly
@@ -190,8 +198,10 @@ changes
 3. **Manual Deploy (if needed):**
    ```bash
    cd cloudflare
-   wrangler pages deploy ./ --project-name=bluehand-solutions
+   bunx wrangler pages deploy ./ --project-name=bluehand-solutions --commit-dirty=true
    ```
+   
+   **Note:** Uses `bunx wrangler` for consistency with project tooling. The `--commit-dirty=true` flag allows deployment even with uncommitted changes (useful for testing).
 
 ## Merge Rules
 
