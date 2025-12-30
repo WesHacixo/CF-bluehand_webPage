@@ -16,7 +16,7 @@ function HeaderInner() {
 
   return (
     <header className="flex items-center justify-between gap-[14px] flex-wrap">
-      <div className="brand flex items-center gap-3 select-none" aria-label="Bluehand brand">
+      <div className="brand flex items-center gap-3 select-none animate-fade-in-up" aria-label="Bluehand brand">
         <BrandMark />
         <div>
           <h1 className="text-sm tracking-[0.22em] m-0 uppercase text-[rgba(234,240,255,0.95)]">BLUEHAND.SOLUTIONS</h1>
@@ -24,7 +24,7 @@ function HeaderInner() {
         </div>
       </div>
 
-      <nav className="flex gap-2.5 items-center flex-wrap justify-end">
+      <nav className="flex gap-2.5 items-center flex-wrap justify-end animate-fade-in-up" style={{ animationDelay: "0.1s" }}>
         <button className="pill" onClick={() => scrollToSection("work")}>
           Work
         </button>
