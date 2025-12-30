@@ -22,11 +22,11 @@
   <meta property="og:image" content="https://bluehand.solutions/og-image.jpg">
   
   <!-- Twitter -->
-  <meta property="twitter:card" content="summary_large_image">
-  <meta property="twitter:url" content="https://bluehand.solutions/">
-  <meta property="twitter:title" content="Bluehand.Solutions — Own Your Intelligence">
-  <meta property="twitter:description" content="Sovereign intelligence systems: local-first AI models, secure data pipelines, and governed agent meshes.">
-  <meta property="twitter:image" content="https://bluehand.solutions/og-image.jpg">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:url" content="https://bluehand.solutions/">
+  <meta name="twitter:title" content="Bluehand.Solutions — Own Your Intelligence">
+  <meta name="twitter:description" content="Sovereign intelligence systems: local-first AI models, secure data pipelines, and governed agent meshes.">
+  <meta name="twitter:image" content="https://bluehand.solutions/og-image.jpg">
   
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%2307102a' stroke='%237fb4ff' stroke-width='2'/%3E%3Ccircle cx='50' cy='50' r='20' fill='none' stroke='%237fb4ff' stroke-width='1' opacity='0.6'/%3E%3C/svg%3E">
@@ -80,6 +80,7 @@
       z-index:0;
       background: transparent;
       touch-action: none;
+      will-change: transform, opacity;
     }
 
     .shell{
@@ -590,11 +591,20 @@
       
       $('y').textContent = new Date().getFullYear();
       
-      const canvas = $('bg');
-      if (!canvas) return;
+      const canvasError = (err) => {
+        console.error('Canvas rendering halted', err);
+        const kv = $('kv');
+        if (kv) kv.textContent = 'canvas offline — reduced motion mode';
+        const bg = $('bg');
+        if (bg && bg.remove) bg.remove();
+      };
       
-      const ctx = canvas.getContext('2d', { alpha: true });
-      if (!ctx) return;
+      try {
+        const canvas = $('bg');
+        if (!canvas) throw new Error('Canvas element missing');
+        
+        const ctx = canvas.getContext('2d', { alpha: true });
+        if (!ctx) throw new Error('Canvas context unavailable');
       
       let W=0, H=0, DPR=1;
       let nodes = [];
@@ -936,6 +946,9 @@
         document.addEventListener('DOMContentLoaded', init);
       } else {
         init();
+      }
+      } catch (err) {
+        canvasError(err);
       }
     })();
   </script>
