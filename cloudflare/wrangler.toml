@@ -1,26 +1,11 @@
 name = "bluehand-solutions"
 compatibility_date = "2024-12-30"
 
-# Pages configuration
+# Cloudflare Pages configuration
+# Note: For Pages deployments, build commands and environment variables
+# are configured in the Cloudflare dashboard, not in wrangler.toml.
+# This file is primarily for project identification.
 pages_build_output_dir = "./"
 
-[site]
-bucket = "./"
-
-# Custom domain configuration (uncomment when ready)
-# route = "bluehand.solutions/*"
-
-# Build configuration
-[build]
-command = ""  # No build step needed for static site
-
-# Environment variables (if needed)
-[env.production]
-# Add production environment variables here
-
-[env.preview]
-# Add preview environment variables here
-
-# Deployment settings
-[placement]
-mode = "smart"  # Smart placement for optimal performance
+# Custom domain configuration can be set in Cloudflare dashboard
+# Build settings (build command, output directory) are configured in dashboard
