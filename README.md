@@ -81,6 +81,7 @@ See `assets/README.md` for details on available assets and usage guidelines.
 - `assets/README.md` - Shared assets documentation
 - `docs/DEPLOYMENT.md` - Complete deployment guide
 - `docs/OPTIMIZATION.md` - Performance optimizations
+- `docs/GOLDEN_NUGGETS.md` - Best-of artifacts from each build (Cloudflare & Vercel)
 - `cloudflare/README.md` - Cloudflare-specific docs
 - `vercel/README.md` - Vercel-specific docs
 
