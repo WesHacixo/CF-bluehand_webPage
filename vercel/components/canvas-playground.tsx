@@ -39,6 +39,41 @@ const THEME_COLORS: Record<string, [number, number, number]> = {
 // Performance constants
 const MAX_NODES = 5000 // Significantly increased for rich, complex visualizations
 
+// Canvas dimension bounds
+const MIN_CANVAS_DIM = 100
+const MAX_CANVAS_DIM = 4096
+
+// Resize debounce delay (ms)
+const RESIZE_DEBOUNCE_MS = 100
+
+// Cluster detection thresholds
+const CLUSTER_THRESHOLD = 40 // Maximum distance for nodes to form a quartet
+const CLUSTER_DISSOLVE_THRESHOLD = CLUSTER_THRESHOLD * 1.5 // Threshold for dissolving clusters
+
+// Dyad coupling thresholds
+const DYAD_THRESHOLD = 200 // Maximum distance between quartet centers to form a dyad
+const DYAD_DISSOLVE_MULTIPLIER = 1.5 // Multiplier for dyad dissolution threshold
+
+// Pulse thresholds
+const PULSE_ACTIVE_THRESHOLD = 0.2 // Pulse intensity to activate dyads
+const PULSE_WAVE_THRESHOLD = 0.1 // Pulse intensity to update wave time
+const PULSE_BURST_THRESHOLD = 0.3 // Pulse intensity for burst effects
+
+// Pointer interaction thresholds
+const FAST_DRAG_THRESHOLD = 15 // Speed threshold for fast drag (repulsion)
+const SLOW_DRAG_THRESHOLD = 8 // Speed threshold for slow drag (attraction)
+const SPARK_SPAWN_THRESHOLD = 20 // Speed threshold for spark spawning
+const TRAIL_SPAWN_THRESHOLD = 3 // Speed threshold for trail spawning
+
+// Physics constants
+const BOUNDARY_MARGIN = 20 // Soft boundary margin for bounce
+const ATTRACTION_RADIUS = 180 // Radius for attraction force
+const REPULSION_RADIUS = 80 // Radius for repulsion force
+const MAX_TRAIL_LENGTH = 50 // Maximum trail points
+
+// Initial constellation
+const INITIAL_NODE_COUNT = 25
+
 function CanvasPlaygroundInner() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -55,6 +90,7 @@ function CanvasPlaygroundInner() {
   const dimensionsRef = useRef({ W: 0, H: 0 })
   const frameRef = useRef<number>(0)
   const lastTimeRef = useRef(performance.now())
+  const resizeTimeoutRef = useRef<number | null>(null)
   // Quartet rotation state
   const clusterRotationsRef = useRef<Map<number, number>>(new Map()) // clusterId -> rotation angle
   const clusterIdCounterRef = useRef(0)
@@ -63,6 +99,9 @@ function CanvasPlaygroundInner() {
   const dyadsRef = useRef<Map<number, { clusterA: number; clusterB: number; wavePhase: number; waveAmplitude: number }>>(new Map())
   const dyadIdCounterRef = useRef(0)
   const waveTimeRef = useRef(0) // Global wave time for synchronization
+  // Gradient cache for performance (cache by key, recreate when context changes)
+  const gradientCacheRef = useRef<Map<string, CanvasGradient>>(new Map())
+  const lastGradientCacheClearRef = useRef(0) // Track when to clear cache
 
   const { mode, theme, toggleMode, pulseSeal, spawnBurst, sealPulse, burst, setTheme } = useApp()
 
@@ -138,10 +177,25 @@ function CanvasPlaygroundInner() {
     if (!ctx) return
 
     const resize = () => {
-      const rect = container.getBoundingClientRect()
+      // Use canvas element dimensions, not container
+      const rect = canvas.getBoundingClientRect()
       const DPR = Math.min(window.devicePixelRatio || 1, 2)
-      const W = Math.floor(rect.width)
-      const H = Math.floor(rect.height)
+
+      // Get dimensions with bounds checking to prevent crashes
+      let W = Math.floor(rect.width)
+      let H = Math.floor(rect.height)
+
+      // Clamp dimensions to safe bounds
+      W = Math.max(MIN_CANVAS_DIM, Math.min(W, MAX_CANVAS_DIM))
+      H = Math.max(MIN_CANVAS_DIM, Math.min(H, MAX_CANVAS_DIM))
+
+      // Only resize if dimensions actually changed (prevent infinite loops)
+      if (
+        dimensionsRef.current.W === W &&
+        dimensionsRef.current.H === H
+      ) {
+        return
+      }
 
       canvas.width = Math.floor(W * DPR)
       canvas.height = Math.floor(H * DPR)
@@ -151,16 +205,32 @@ function CanvasPlaygroundInner() {
 
       dimensionsRef.current = { W, H }
 
-      // Seed initial constellation
+      // Clamp existing nodes to new bounds when canvas shrinks
+      if (nodesRef.current.length > 0) {
+        for (const node of nodesRef.current) {
+          node.x = Math.max(0, Math.min(node.x, W))
+          node.y = Math.max(0, Math.min(node.y, H))
+        }
+      }
+
+      // Seed initial constellation only if empty
       if (nodesRef.current.length === 0) {
-        for (let i = 0; i < 25; i++) {
+        for (let i = 0; i < INITIAL_NODE_COUNT; i++) {
           nodesRef.current.push(makeNode(Math.random() * W, Math.random() * H, 0, 0, "node"))
         }
       }
     }
 
+    // Debounced resize function
+    const debouncedResize = () => {
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current)
+      }
+      resizeTimeoutRef.current = window.setTimeout(resize, RESIZE_DEBOUNCE_MS)
+    }
+
     resize()
-    window.addEventListener("resize", resize)
+    window.addEventListener("resize", debouncedResize)
 
     const getCanvasCoords = (e: MouseEvent | TouchEvent) => {
       const rect = canvas.getBoundingClientRect()
@@ -199,14 +269,15 @@ function CanvasPlaygroundInner() {
         pointerRef.current.velocity.x = pointerRef.current.velocity.x * 0.7 + dx * 0.3
         pointerRef.current.velocity.y = pointerRef.current.velocity.y * 0.7 + dy * 0.3
 
-        // Add trail points
-        pointerRef.current.trail.push({ x: coords.x, y: coords.y, age: 0 })
-        if (pointerRef.current.trail.length > 50) {
-          pointerRef.current.trail.shift()
+        // Add trail points (circular buffer pattern)
+        const trail = pointerRef.current.trail
+        trail.push({ x: coords.x, y: coords.y, age: 0 })
+        if (trail.length > MAX_TRAIL_LENGTH) {
+          trail.shift()
         }
 
         // Spawn trail particles based on speed
-        if (speed > 3) {
+        if (speed > TRAIL_SPAWN_THRESHOLD) {
           nodesRef.current.push(
             makeNode(
               coords.x,
@@ -220,32 +291,34 @@ function CanvasPlaygroundInner() {
 
         // Apply force to nearby nodes - attraction when slow, repulsion when fast
         const nodes = nodesRef.current
-        const attractionRadius = 180
-        const repulsionRadius = 80
 
         for (let i = 0; i < nodes.length; i++) {
           const n = nodes[i]
           const ndx = n.x - coords.x
           const ndy = n.y - coords.y
-          const dist = Math.sqrt(ndx * ndx + ndy * ndy)
+          const distSq = ndx * ndx + ndy * ndy
+          const attractionRadiusSq = ATTRACTION_RADIUS * ATTRACTION_RADIUS
+          const repulsionRadiusSq = REPULSION_RADIUS * REPULSION_RADIUS
 
-          if (dist < attractionRadius && dist > 0) {
+          // Use squared distance for comparison (avoid sqrt until needed)
+          if (distSq < attractionRadiusSq && distSq > 0) {
+            const dist = Math.sqrt(distSq)
             const normalizedDx = ndx / dist
             const normalizedDy = ndy / dist
 
-            if (speed > 15 && dist < repulsionRadius) {
+            if (speed > FAST_DRAG_THRESHOLD && distSq < repulsionRadiusSq) {
               // Fast drag = explosive repulsion
-              const force = (1 - dist / repulsionRadius) * 0.8
+              const force = (1 - dist / REPULSION_RADIUS) * 0.8
               n.vx += normalizedDx * force * (speed * 0.05)
               n.vy += normalizedDy * force * (speed * 0.05)
-            } else if (speed < 8) {
+            } else if (speed < SLOW_DRAG_THRESHOLD) {
               // Slow drag = gentle attraction (gravitational pull)
-              const force = (1 - dist / attractionRadius) * 0.15
+              const force = (1 - dist / ATTRACTION_RADIUS) * 0.15
               n.vx -= normalizedDx * force
               n.vy -= normalizedDy * force
             } else {
               // Medium speed = swirl effect
-              const force = (1 - dist / attractionRadius) * 0.1
+              const force = (1 - dist / ATTRACTION_RADIUS) * 0.1
               n.vx += normalizedDy * force * Math.sign(dx)
               n.vy -= normalizedDx * force * Math.sign(dx)
             }
@@ -253,7 +326,7 @@ function CanvasPlaygroundInner() {
         }
 
         // Spawn sparks on fast movement
-        if (speed > 20 && Math.random() > 0.5) {
+        if (speed > SPARK_SPAWN_THRESHOLD && Math.random() > 0.5) {
           spawnCluster(coords.x, coords.y, 3, pointerRef.current.velocity.x, pointerRef.current.velocity.y)
         }
 
@@ -290,11 +363,19 @@ function CanvasPlaygroundInner() {
 
     // Animation loop
     const step = (t: number) => {
-      const dt = Math.min(0.05, (t - lastTimeRef.current) / 1000)
-      lastTimeRef.current = t
+      try {
+        const dt = Math.min(0.05, (t - lastTimeRef.current) / 1000)
+        lastTimeRef.current = t
 
-      const { W, H } = dimensionsRef.current
-      ctx.clearRect(0, 0, W, H)
+        const { W, H } = dimensionsRef.current
+
+        // Safety check: if dimensions are invalid, skip this frame
+        if (W <= 0 || H <= 0) {
+          frameRef.current = requestAnimationFrame(step)
+          return
+        }
+
+        ctx.clearRect(0, 0, W, H)
 
       // Subtle background
       ctx.fillStyle = "rgba(5, 8, 20, 0.3)"
@@ -304,6 +385,7 @@ function CanvasPlaygroundInner() {
       const [r, g, b] = themeColor
       const isLive = mode === "live"
       const maxDist = isLive ? 160 : 120
+      const maxDistSq = maxDist * maxDist // Use squared distance for comparisons
       const currentPulse = sealPulse
       const currentBurst = burst
 
@@ -331,7 +413,7 @@ function CanvasPlaygroundInner() {
 
       // Burst effect - spawn particles from center when burst is active
       // This creates a "constellation drop" effect - multiple clusters spawn
-      if (currentBurst > 0.3) {
+      if (currentBurst > PULSE_BURST_THRESHOLD) {
         const cx = W * 0.5
         const cy = H * 0.5
         const burstCount = Math.min(20, Math.floor(currentBurst * 15))
@@ -358,8 +440,8 @@ function CanvasPlaygroundInner() {
 
       // Detect and update 2x2 clusters (quartets) for rotation
       // Group nearby nodes into quartets and apply rotation matrix transformations
-      const clusterThreshold = 40 // Maximum distance for nodes to form a quartet
       const clusters = new Map<number, PlaygroundNode[]>()
+      const clusterThresholdSq = CLUSTER_THRESHOLD * CLUSTER_THRESHOLD
 
       // Detect quartets: find groups of 4 nodes close together
       for (let i = 0; i < nodes.length; i++) {
@@ -374,9 +456,10 @@ function CanvasPlaygroundInner() {
 
           const dx = other.x - n.x
           const dy = other.y - n.y
-          const dist = Math.sqrt(dx * dx + dy * dy)
+          const distSq = dx * dx + dy * dy
 
-          if (dist < clusterThreshold) {
+          // Use squared distance comparison (avoid sqrt until needed)
+          if (distSq < clusterThresholdSq) {
             nearby.push(other)
           }
         }
@@ -414,44 +497,45 @@ function CanvasPlaygroundInner() {
       // Detect dyads: pair quartets that are close enough to form wave connections
       // This creates fractal wave patterns as groups of particles move in wave-like fashion
       // DYAD FORMATION IS PULSE-DRIVEN: Only forms when pulse is active
-      const dyadThreshold = 200 // Maximum distance between quartet centers to form a dyad
       const existingDyads = new Set<string>() // Track existing dyad pairs to avoid duplicates
 
       // Only detect/form dyads when pulse is active
-      if (currentPulse > 0.2) {
+      if (currentPulse > PULSE_ACTIVE_THRESHOLD) {
         // Pulse intensity affects dyad threshold (stronger pulse = longer connections)
-        const pulseDyadThreshold = dyadThreshold * (1 + currentPulse * 0.5)
+        const pulseDyadThreshold = DYAD_THRESHOLD * (1 + currentPulse * 0.5)
+        const pulseDyadThresholdSq = pulseDyadThreshold * pulseDyadThreshold
 
         for (const [idA, clusterA] of clusters.entries()) {
           if (clusterA.length !== 4) continue
 
-        // Calculate cluster A center
-        let cxA = 0, cyA = 0
-        clusterA.forEach((node) => {
-          cxA += node.x
-          cyA += node.y
-        })
-        cxA /= 4
-        cyA /= 4
-
-        for (const [idB, clusterB] of clusters.entries()) {
-          if (idA >= idB || clusterB.length !== 4) continue
-
-          // Calculate cluster B center
-          let cxB = 0, cyB = 0
-          clusterB.forEach((node) => {
-            cxB += node.x
-            cyB += node.y
+          // Calculate cluster A center
+          let cxA = 0, cyA = 0
+          clusterA.forEach((node) => {
+            cxA += node.x
+            cyA += node.y
           })
-          cxB /= 4
-          cyB /= 4
+          cxA /= 4
+          cyA /= 4
 
-          // Check distance between cluster centers
-          const dx = cxB - cxA
-          const dy = cyB - cyA
-          const dist = Math.sqrt(dx * dx + dy * dy)
+          for (const [idB, clusterB] of clusters.entries()) {
+            if (idA >= idB || clusterB.length !== 4) continue
 
-          if (dist < pulseDyadThreshold) {
+            // Calculate cluster B center
+            let cxB = 0, cyB = 0
+            clusterB.forEach((node) => {
+              cxB += node.x
+              cyB += node.y
+            })
+            cxB /= 4
+            cyB /= 4
+
+            // Check distance between cluster centers (use squared distance)
+            const dx = cxB - cxA
+            const dy = cyB - cyA
+            const distSq = dx * dx + dy * dy
+
+            if (distSq < pulseDyadThresholdSq) {
+              const dist = Math.sqrt(distSq)
             const dyadKey = `${Math.min(idA, idB)}-${Math.max(idA, idB)}`
             if (!existingDyads.has(dyadKey)) {
               existingDyads.add(dyadKey)
@@ -485,17 +569,45 @@ function CanvasPlaygroundInner() {
       } // End pulse-driven dyad detection
 
       // Update wave time for synchronized wave motion (only when pulse is active)
-      if (currentPulse > 0.1) {
+      if (currentPulse > PULSE_WAVE_THRESHOLD) {
         waveTimeRef.current += dt * 60 * (1 + currentPulse * 0.5) // Faster wave animation during pulse
+      }
+
+      // Periodic cleanup: remove orphaned cluster rotations and clear gradient cache
+      // Cleanup every 5 seconds to prevent memory leaks
+      const now = performance.now()
+      if (now - lastGradientCacheClearRef.current > 5000) {
+        lastGradientCacheClearRef.current = now
+
+        // Clean up orphaned cluster rotations (clusters that no longer exist)
+        const activeClusterIds = new Set<number>()
+        for (const node of nodes) {
+          if (node.clusterId !== undefined) {
+            activeClusterIds.add(node.clusterId)
+          }
+        }
+
+        // Remove rotations for clusters that no longer exist
+        for (const clusterId of clusterRotationsRef.current.keys()) {
+          if (!activeClusterIds.has(clusterId)) {
+            clusterRotationsRef.current.delete(clusterId)
+          }
+        }
+
+        // Clear gradient cache (gradients are context-specific and may become stale)
+        gradientCacheRef.current.clear()
       }
 
       // Clean up dyads where clusters are too far apart or no longer exist
       // Also dissolve dyads when pulse ends (below threshold)
-      if (currentPulse < 0.1) {
+      if (currentPulse < PULSE_WAVE_THRESHOLD) {
         // Dissolve all dyads when pulse ends
         dyadsRef.current.clear()
       } else {
         // Normal cleanup when pulse is active
+        const pulseDyadThreshold = DYAD_THRESHOLD * (1 + currentPulse * 0.5)
+        const pulseDyadDissolveThresholdSq = (pulseDyadThreshold * DYAD_DISSOLVE_MULTIPLIER) ** 2
+
         for (const [dyadId, dyad] of dyadsRef.current.entries()) {
           const clusterA = clusters.get(dyad.clusterA)
           const clusterB = clusters.get(dyad.clusterB)
@@ -524,11 +636,10 @@ function CanvasPlaygroundInner() {
 
           const dx = cxB - cxA
           const dy = cyB - cyA
-          const dist = Math.sqrt(dx * dx + dy * dy)
+          const distSq = dx * dx + dy * dy
 
-          // Use pulse-scaled threshold for cleanup
-          const pulseDyadThreshold = dyadThreshold * (1 + currentPulse * 0.5)
-          if (dist > pulseDyadThreshold * 1.5) {
+          // Use pulse-scaled threshold for cleanup (squared distance)
+          if (distSq > pulseDyadDissolveThresholdSq) {
             dyadsRef.current.delete(dyadId)
           }
         }
@@ -551,7 +662,7 @@ function CanvasPlaygroundInner() {
         }
 
         // Pulse effect - radial expansion with color variation
-        if (currentPulse > 0.3) {
+        if (currentPulse > PULSE_BURST_THRESHOLD) {
           const dx = n.x - W * 0.5
           const dy = n.y - H * 0.5
           const distSq = dx * dx + dy * dy
@@ -614,7 +725,7 @@ function CanvasPlaygroundInner() {
 
             // Apply wave motion along dyad edges (fractal wave propagation)
             // Wave effects are pulse-driven and scale with pulse intensity
-            if (currentPulse > 0.2) {
+            if (currentPulse > PULSE_ACTIVE_THRESHOLD) {
               // Find if this cluster is part of a dyad
               for (const [dyadId, dyad] of dyadsRef.current.entries()) {
                 if (dyad.clusterA === n.clusterId || dyad.clusterB === n.clusterId) {
@@ -634,9 +745,11 @@ function CanvasPlaygroundInner() {
                     // Vector from this cluster to other cluster
                     const dx = cxOther - cx
                     const dy = cyOther - cy
-                    const dist = Math.sqrt(dx * dx + dy * dy)
+                    const distSq = dx * dx + dy * dy
 
-                    if (dist > 0) {
+                    if (distSq > 0) {
+                      const dist = Math.sqrt(distSq)
+
                       // Normalize direction vector
                       const dirX = dx / dist
                       const dirY = dy / dist
@@ -648,7 +761,10 @@ function CanvasPlaygroundInner() {
                       // Wave function: sinusoidal motion along the edge
                       // Phase varies with position along the edge and time
                       // Wave intensity scales with pulse
-                      const positionAlongEdge = (n.baseX! * dirX + n.baseY! * dirY) / 100 // Normalize
+                      // Type guard: check baseX/baseY are defined
+                      if (n.baseX === undefined || n.baseY === undefined) continue
+
+                      const positionAlongEdge = (n.baseX * dirX + n.baseY * dirY) / 100 // Normalize
                       const wavePhase = dyad.wavePhase + waveTimeRef.current * 0.05 + positionAlongEdge * 0.5
                       const waveOffset = Math.sin(wavePhase) * dyad.waveAmplitude
 
@@ -675,19 +791,18 @@ function CanvasPlaygroundInner() {
 
         // Soft boundary bounce (skip for clustered nodes as rotation handles positioning)
         if (n.clusterId === undefined) {
-          const margin = 20
-          if (n.x < margin) {
-            n.x = margin
+          if (n.x < BOUNDARY_MARGIN) {
+            n.x = BOUNDARY_MARGIN
             n.vx *= -0.5
-          } else if (n.x > W - margin) {
-            n.x = W - margin
+          } else if (n.x > W - BOUNDARY_MARGIN) {
+            n.x = W - BOUNDARY_MARGIN
             n.vx *= -0.5
           }
-          if (n.y < margin) {
-            n.y = margin
+          if (n.y < BOUNDARY_MARGIN) {
+            n.y = BOUNDARY_MARGIN
             n.vy *= -0.5
-          } else if (n.y > H - margin) {
-            n.y = H - margin
+          } else if (n.y > H - BOUNDARY_MARGIN) {
+            n.y = H - BOUNDARY_MARGIN
             n.vy *= -0.5
           }
         }
@@ -746,7 +861,7 @@ function CanvasPlaygroundInner() {
             })
 
             // If cluster is too spread out, dissolve it
-            if (maxDist > clusterThreshold * 1.5) {
+            if (maxDist > CLUSTER_DISSOLVE_THRESHOLD) {
               clusterNodes.forEach((node) => {
                 node.clusterId = undefined
                 node.baseX = undefined
@@ -761,7 +876,7 @@ function CanvasPlaygroundInner() {
 
       // Draw dyad wave edges first (fractal wave patterns between quartets)
       // Only render when pulse is active
-      if (currentPulse > 0.2) {
+      if (currentPulse > PULSE_ACTIVE_THRESHOLD) {
         ctx.lineWidth = 2 * (1 + currentPulse * 0.5) // Thicker lines during pulse
         ctx.lineCap = "round"
 
@@ -829,9 +944,11 @@ function CanvasPlaygroundInner() {
             }
 
             // Gradient from cluster A to cluster B (intensity scales with pulse)
-            const gradient = ctx.createLinearGradient(cxA, cyA, cxB, cyB)
+            // Note: Gradients are position-specific, so caching is limited
+            // The gradient cache is primarily for periodic cleanup tracking
             const baseAlpha = Math.max(0.2, 0.6 - dist / 200)
             const pulseAlpha = baseAlpha * currentPulse * 1.5 // Brighter during pulse
+            const gradient = ctx.createLinearGradient(cxA, cyA, cxB, cyB)
             gradient.addColorStop(0, `rgba(${r}, ${g}, ${255}, ${pulseAlpha})`)
             gradient.addColorStop(0.5, `rgba(${r + 30}, ${g + 20}, ${255}, ${pulseAlpha * 1.5})`)
             gradient.addColorStop(1, `rgba(${r}, ${g}, ${255}, ${pulseAlpha})`)
@@ -861,15 +978,18 @@ function CanvasPlaygroundInner() {
 
           const dx = a.x - b.x
           const dy = a.y - b.y
-          const dist = Math.sqrt(dx * dx + dy * dy)
+          const distSq = dx * dx + dy * dy
 
-          if (dist < maxDist) {
+          // Use squared distance comparison (avoid sqrt until needed)
+          if (distSq < maxDistSq) {
+            const dist = Math.sqrt(distSq)
+
             // Track connections for structural weight
             a.connectionCount = (a.connectionCount || 0) + 1
             b.connectionCount = (b.connectionCount || 0) + 1
 
             const alpha = (1 - dist / maxDist) * (a.kind === "spark" || b.kind === "spark" ? 0.15 : 0.25)
-            ctx.strokeStyle = `rgba(${r + a.hue}, ${g}, ${b.hue > 0 ? b : b}, ${alpha})`
+            ctx.strokeStyle = `rgba(${r + a.hue}, ${g}, ${b}, ${alpha})`
             ctx.beginPath()
             ctx.moveTo(a.x, a.y)
             ctx.lineTo(b.x, b.y)
@@ -938,9 +1058,12 @@ function CanvasPlaygroundInner() {
         }
 
         // Glow with structural fade and pulse enhancement
+        // Note: Gradients are position-specific, so we can't cache them effectively
+        // The gradient cache is primarily for cleanup tracking
         const glowRadius = radius * (3 + currentPulse * 1.5)
+        const glowAlpha = alpha * (0.4 + currentPulse * 0.3)
         const gradient = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, glowRadius)
-        gradient.addColorStop(0, `rgba(${r + n.hue}, ${g}, ${b}, ${alpha * (0.4 + currentPulse * 0.3)})`)
+        gradient.addColorStop(0, `rgba(${r + n.hue}, ${g}, ${b}, ${glowAlpha})`)
         gradient.addColorStop(1, `rgba(${r + n.hue}, ${g}, ${b}, 0)`)
         ctx.fillStyle = gradient
         ctx.beginPath()
@@ -959,10 +1082,10 @@ function CanvasPlaygroundInner() {
       if (pointerRef.current.down) {
         const { x, y, velocity } = pointerRef.current
         const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y)
-        const radius = speed > 15 ? 80 : 180
+        const radius = speed > FAST_DRAG_THRESHOLD ? REPULSION_RADIUS : ATTRACTION_RADIUS
 
         const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius)
-        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${speed > 15 ? 0.15 : 0.08})`)
+        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${speed > FAST_DRAG_THRESHOLD ? 0.15 : 0.08})`)
         gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`)
         ctx.fillStyle = gradient
         ctx.beginPath()
@@ -970,14 +1093,22 @@ function CanvasPlaygroundInner() {
         ctx.fill()
       }
 
-      frameRef.current = requestAnimationFrame(step)
+        frameRef.current = requestAnimationFrame(step)
+      } catch (error) {
+        console.error("Canvas animation error:", error)
+        // Graceful degradation: continue animation loop
+        frameRef.current = requestAnimationFrame(step)
+      }
     }
 
     frameRef.current = requestAnimationFrame(step)
 
     return () => {
       cancelAnimationFrame(frameRef.current)
-      window.removeEventListener("resize", resize)
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current)
+      }
+      window.removeEventListener("resize", debouncedResize)
       canvas.removeEventListener("mousedown", onPointerDown)
       canvas.removeEventListener("mousemove", onPointerMove)
       canvas.removeEventListener("mouseup", onPointerUp)
