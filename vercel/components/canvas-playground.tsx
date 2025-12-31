@@ -1034,6 +1034,10 @@ function CanvasPlaygroundInner() {
 
     return () => {
       cancelAnimationFrame(frameRef.current)
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current)
+      }
+      resizeObserver.disconnect()
       window.removeEventListener("resize", resize)
       canvas.removeEventListener("mousedown", onPointerDown)
       canvas.removeEventListener("mousemove", onPointerMove)
