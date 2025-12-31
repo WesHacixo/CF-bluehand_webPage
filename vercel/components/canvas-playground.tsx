@@ -52,9 +52,10 @@ function CanvasPlaygroundInner() {
     velocity: { x: 0, y: 0 },
     trail: [] as { x: number; y: number; age: number }[],
   })
-  const dimensionsRef = useRef({ W: 0, H: 0 })
+  const dimensionsRef = useRef({ W: 0, H: 0, DPR: 1 })
   const frameRef = useRef<number>(0)
   const lastTimeRef = useRef(performance.now())
+  const resizeTimeoutRef = useRef<number | null>(null)
   // Quartet rotation state
   const clusterRotationsRef = useRef<Map<number, number>>(new Map()) // clusterId -> rotation angle
   const clusterIdCounterRef = useRef(0)
@@ -138,28 +139,82 @@ function CanvasPlaygroundInner() {
     if (!ctx) return
 
     const resize = () => {
-      const rect = container.getBoundingClientRect()
-      const DPR = Math.min(window.devicePixelRatio || 1, 2)
-      const W = Math.floor(rect.width)
-      const H = Math.floor(rect.height)
-
-      canvas.width = Math.floor(W * DPR)
-      canvas.height = Math.floor(H * DPR)
-      canvas.style.width = W + "px"
-      canvas.style.height = H + "px"
-      ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
-
-      dimensionsRef.current = { W, H }
-
-      // Seed initial constellation
-      if (nodesRef.current.length === 0) {
-        for (let i = 0; i < 25; i++) {
-          nodesRef.current.push(makeNode(Math.random() * W, Math.random() * H, 0, 0, "node"))
-        }
+      // Clear any pending resize
+      if (resizeTimeoutRef.current) {
+        clearTimeout(resizeTimeoutRef.current)
       }
+
+      // Debounce resize to prevent excessive calls
+      resizeTimeoutRef.current = window.setTimeout(() => {
+        // Get canvas element's actual dimensions (not container)
+        const canvasRect = canvas.getBoundingClientRect()
+        const DPR = Math.min(window.devicePixelRatio || 1, 2)
+        
+        // Get dimensions with bounds checking
+        let W = Math.floor(canvasRect.width)
+        let H = Math.floor(canvasRect.height)
+        
+        // Enforce maximum bounds to prevent crashes
+        const MAX_WIDTH = 4096
+        const MAX_HEIGHT = 4096
+        const MIN_WIDTH = 100
+        const MIN_HEIGHT = 100
+        
+        W = Math.max(MIN_WIDTH, Math.min(W, MAX_WIDTH))
+        H = Math.max(MIN_HEIGHT, Math.min(H, MAX_HEIGHT))
+        
+        // Only resize if dimensions actually changed (prevent infinite loops)
+        if (dimensionsRef.current.W === W && dimensionsRef.current.H === H && dimensionsRef.current.DPR === DPR) {
+          return
+        }
+        
+        // Calculate actual canvas size with DPR
+        const canvasWidth = Math.floor(W * DPR)
+        const canvasHeight = Math.floor(H * DPR)
+        
+        // Set canvas internal size (for rendering)
+        canvas.width = canvasWidth
+        canvas.height = canvasHeight
+        
+        // Set canvas display size (CSS pixels)
+        canvas.style.width = W + "px"
+        canvas.style.height = H + "px"
+        
+        // Set transform for high-DPI
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
+        
+        // Update dimensions
+        dimensionsRef.current = { W, H, DPR }
+        
+        // Clamp existing nodes to new bounds if canvas shrunk
+        if (nodesRef.current.length > 0) {
+          for (const node of nodesRef.current) {
+            node.x = Math.max(0, Math.min(node.x, W))
+            node.y = Math.max(0, Math.min(node.y, H))
+          }
+        }
+        
+        // Seed initial constellation only if empty
+        if (nodesRef.current.length === 0) {
+          for (let i = 0; i < 25; i++) {
+            nodesRef.current.push(makeNode(Math.random() * W, Math.random() * H, 0, 0, "node"))
+          }
+        }
+      }, 100) // 100ms debounce
     }
 
     resize()
+    
+    // Use ResizeObserver for canvas element (more reliable than window resize)
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        if (entry.target === canvas) {
+          resize()
+        }
+      }
+    })
+    
+    resizeObserver.observe(canvas)
     window.addEventListener("resize", resize)
 
     const getCanvasCoords = (e: MouseEvent | TouchEvent) => {
@@ -294,6 +349,8 @@ function CanvasPlaygroundInner() {
       lastTimeRef.current = t
 
       const { W, H } = dimensionsRef.current
+      // Safety check: if dimensions are invalid, skip this frame
+      if (W <= 0 || H <= 0) return
       ctx.clearRect(0, 0, W, H)
 
       // Subtle background
@@ -1033,7 +1090,12 @@ function CanvasPlaygroundInner() {
       <canvas
         ref={canvasRef}
         className="w-full h-[280px] sm:h-[360px] rounded-xl cursor-crosshair touch-none"
-        style={{ background: "rgba(5, 8, 20, 0.5)" }}
+        style={{ 
+          background: "rgba(5, 8, 20, 0.5)",
+          maxWidth: "100%",
+          maxHeight: "100%",
+          display: "block"
+        }}
       />
     </section>
   )
