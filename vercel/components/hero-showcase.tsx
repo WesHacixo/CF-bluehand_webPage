@@ -40,7 +40,7 @@ function HeroShowcaseInner() {
 
       {/* Theme indicator - top right */}
       <div className="absolute top-4 right-4 z-20">
-        <div className="text-[10px] uppercase tracking-[0.2em] text-[rgba(234,240,255,0.5)] bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10">
+        <div className="text-2xs uppercase tracking-[0.2em] text-disabled bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10">
           {backgroundTheme === "neural" && "Neural"}
           {backgroundTheme === "wireframe" && "Wireframe"}
           {backgroundTheme === "circuit" && "Circuit"}
@@ -51,13 +51,13 @@ function HeroShowcaseInner() {
       <div className="absolute top-4 left-4 z-20 flex gap-2">
         <button
           onClick={toggleMode}
-          className="text-[10px] uppercase tracking-[0.15em] text-[rgba(234,240,255,0.7)] bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 hover:border-[rgba(127,180,255,0.4)] hover:bg-black/50 transition-all"
+          className="text-2xs uppercase tracking-[0.15em] text-muted bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 hover:border-[rgba(127,180,255,0.4)] hover:bg-black/50 transition-all"
         >
           {mode === "calm" ? "Calm" : "Live"}
         </button>
         <button
           onClick={cycleBackgroundTheme}
-          className="text-[10px] uppercase tracking-[0.15em] text-[rgba(234,240,255,0.7)] bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 hover:border-[rgba(127,180,255,0.4)] hover:bg-black/50 transition-all"
+          className="text-2xs uppercase tracking-[0.15em] text-muted bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 hover:border-[rgba(127,180,255,0.4)] hover:bg-black/50 transition-all"
         >
           Theme
         </button>
@@ -88,7 +88,7 @@ function HeroShowcaseInner() {
           mounted && !showLogo ? "opacity-100" : "opacity-0"
         }`}
       >
-        <p className="text-[11px] md:text-xs uppercase tracking-[0.25em] text-[rgba(234,240,255,0.45)]">
+        <p className="text-2xs uppercase tracking-[0.25em] text-disabled">
           Interactive canvas — click and drag to shape your constellation
         </p>
       </div>

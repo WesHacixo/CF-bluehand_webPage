@@ -18,6 +18,23 @@
   --shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
   --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 
+  /* Fluid Typography Scale - improves readability across all devices */
+  --text-h1: clamp(32px, 5vw, 64px);
+  --text-h2: clamp(28px, 4.2vw, 52px);
+  --text-h3: clamp(18px, 2vw, 24px);
+  --text-lg: clamp(16px, 1.5vw, 20px);
+  --text-base: clamp(14px, 1.35vw, 17px);
+  --text-sm: clamp(13px, 1.2vw, 15px);
+  --text-xs: clamp(11px, 1vw, 13px);
+  --text-2xs: clamp(10px, 0.9vw, 12px);
+
+  /* Brightness Hierarchy - for healthy eye scanning and visual hierarchy */
+  --text-primary: rgba(234, 240, 255, 1);           /* Headings, key info */
+  --text-secondary: rgba(234, 240, 255, 0.88);      /* Body text, descriptions */
+  --text-tertiary: rgba(169, 183, 230, 0.95);       /* Supporting info */
+  --text-muted: rgba(169, 183, 230, 0.70);          /* Labels, metadata */
+  --text-disabled: rgba(169, 183, 230, 0.45);       /* Decorative, hints */
+
   /* Semantic tokens mapped to Bluehand theme */
   --background: var(--bg0);
   --foreground: var(--ink);
@@ -175,9 +192,9 @@
   -webkit-backdrop-filter: blur(10px);
   padding: 10px 12px;
   border-radius: 999px;
-  color: rgba(234, 240, 255, 0.9);
-  font-size: 12px;
-  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   text-decoration: none;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -243,14 +260,14 @@
 .btn {
   border: 1px solid rgba(127, 180, 255, 0.35);
   background: rgba(127, 180, 255, 0.12);
-  color: var(--ink);
+  color: var(--text-primary);
   padding: 12px 14px;
   border-radius: 12px;
   text-decoration: none;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  font-size: 12px;
+  font-size: var(--text-xs);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   user-select: none;
@@ -331,17 +348,17 @@
 }
 
 .card .k {
-  font-size: 12px;
+  font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: rgba(234, 240, 255, 0.85);
+  color: var(--text-primary);
   margin: 0 0 8px 0;
 }
 
 .card .v {
   margin: 0;
-  color: rgba(169, 183, 230, 0.95);
-  font-size: 13px;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
   line-height: 1.5;
 }
 
@@ -361,17 +378,17 @@
 
 .item b {
   display: block;
-  font-size: 12px;
-  letter-spacing: 0.12em;
+  font-size: var(--text-xs);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(234, 240, 255, 0.9);
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
 .item span {
   display: block;
-  color: rgba(169, 183, 230, 0.95);
-  font-size: 13px;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
   line-height: 1.5;
 }
 
@@ -393,10 +410,10 @@
 }
 
 .form-label {
-  font-size: 12px;
+  font-size: var(--text-xs);
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: rgba(234, 240, 255, 0.85);
+  letter-spacing: 0.14em;
+  color: var(--text-secondary);
 }
 
 .form-input {
@@ -520,6 +537,23 @@ select.form-input option {
 .animate-scale-in {
   animation: scale-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
 }
+
+/* Typography Utilities - Fluid Sizing */
+.text-h1 { font-size: var(--text-h1); }
+.text-h2 { font-size: var(--text-h2); }
+.text-h3 { font-size: var(--text-h3); }
+.text-lg { font-size: var(--text-lg); }
+.text-base { font-size: var(--text-base); }
+.text-sm { font-size: var(--text-sm); }
+.text-xs { font-size: var(--text-xs); }
+.text-2xs { font-size: var(--text-2xs); }
+
+/* Brightness Hierarchy Utilities */
+.text-primary { color: var(--text-primary); }
+.text-secondary { color: var(--text-secondary); }
+.text-tertiary { color: var(--text-tertiary); }
+.text-muted { color: var(--text-muted); }
+.text-disabled { color: var(--text-disabled); }
 
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {

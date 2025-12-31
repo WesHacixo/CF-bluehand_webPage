@@ -13,8 +13,8 @@ function AuditSectionInner() {
   return (
     <section className="panel" id="audit">
       <div className="fade" />
-      <h3 className="m-0 mb-4 tracking-[0.18em] uppercase text-sm">Sovereignty Audit</h3>
-      <p className="m-0 text-[rgba(234,240,255,0.84)] leading-relaxed max-w-[80ch]">
+      <h3 className="m-0 mb-4 tracking-[0.18em] uppercase text-h3 text-primary">Sovereignty Audit</h3>
+      <p className="m-0 text-secondary text-base leading-relaxed max-w-[80ch]">
         A short, high-signal engagement to map your data, risk, and compute realities—then design a sovereign path:
         local-first where possible, secure hybrid where necessary, and governed throughout.
       </p>

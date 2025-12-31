@@ -68,8 +68,8 @@ function SidePanelInner() {
   return (
     <aside className="panel side">
       <div className="fade" />
-      <h3 className="m-0 mb-3 text-sm tracking-[0.18em] uppercase text-[rgba(234,240,255,0.90)]">Who this is for</h3>
-      <p className="m-0 mb-5 text-[rgba(234,240,255,0.78)] text-[13px] leading-relaxed">
+      <h3 className="m-0 mb-3 text-h3 tracking-[0.18em] uppercase text-primary">Who this is for</h3>
+      <p className="m-0 mb-5 text-secondary text-sm leading-relaxed">
         Teams with proprietary data, privacy requirements, or simple refusal to be platform-dependent.
       </p>
 

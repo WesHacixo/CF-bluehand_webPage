@@ -444,28 +444,28 @@ function CanvasPlaygroundInner() {
       <div className="fade" />
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
         <div>
-          <h3 className="m-0 text-sm tracking-[0.18em] uppercase text-[rgba(234,240,255,0.90)]">
+          <h3 className="m-0 text-h3 tracking-[0.18em] uppercase text-primary">
             Constellation Canvas
           </h3>
-          <p className="m-0 mt-1 text-xs text-muted leading-relaxed">
+          <p className="m-0 mt-1 text-2xs text-muted leading-relaxed">
             Drag slowly to attract • Drag fast to scatter • Click to spawn
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={cycleBackgroundTheme}
-            className="btn alt text-[11px] px-3 py-2"
+            className="btn alt text-2xs px-3 py-2"
             title="Cycle through visual themes (Neural/Wireframe/Circuit)"
           >
             Theme: {backgroundTheme === "neural" ? "Neural" : backgroundTheme === "wireframe" ? "Wireframe" : "Circuit"}
           </button>
-          <button onClick={toggleMode} className="btn alt text-[11px] px-3 py-2">
+          <button onClick={toggleMode} className="btn alt text-2xs px-3 py-2">
             Mode: {mode === "calm" ? "Calm" : "Live"}
           </button>
-          <button onClick={pulseSeal} className="btn alt text-[11px] px-3 py-2">
+          <button onClick={pulseSeal} className="btn alt text-2xs px-3 py-2">
             Pulse
           </button>
-          <button onClick={spawnBurst} className="btn alt text-[11px] px-3 py-2">
+          <button onClick={spawnBurst} className="btn alt text-2xs px-3 py-2">
             Burst
           </button>
         </div>
