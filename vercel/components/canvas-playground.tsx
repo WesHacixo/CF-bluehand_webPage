@@ -105,15 +105,12 @@ function CanvasPlaygroundInner() {
   const isVisibleRef = useRef(true)
 
   // Interactivity state
-  const [clickCount, setClickCount] = useState(0)
   const [rotation3D, setRotation3D] = useState({ x: 0, y: 0 })
   const [currentConstellation, setCurrentConstellation] = useState(0)
   const rotationStartRef = useRef({ x: 0, y: 0, active: false })
 
   // Refs for values used in animation loop to avoid effect re-runs
   const rotation3DRef = useRef(rotation3D)
-  const clickCountRef = useRef(clickCount)
-  const currentConstellationRef = useRef(currentConstellation)
 
   // Touch gesture state
   const touchStateRef = useRef({
@@ -125,12 +122,19 @@ function CanvasPlaygroundInner() {
   const { mode, theme, toggleMode, pulseSeal, spawnBurst } = useApp()
   const themeColor = THEME_COLORS[theme] || THEME_COLORS.neutral
 
+  // Spawn constellation at center with button
+  const handleSpawnConstellation = () => {
+    const { W, H } = dimensionsRef.current
+    if (W && H) {
+      spawnConstellation(currentConstellation, W / 2, H / 2, 150)
+      setCurrentConstellation((prev) => (prev + 1) % CONSTELLATIONS.length)
+    }
+  }
+
   // Sync refs with state to avoid effect re-runs
   useEffect(() => {
     rotation3DRef.current = rotation3D
-    clickCountRef.current = clickCount
-    currentConstellationRef.current = currentConstellation
-  }, [rotation3D, clickCount, currentConstellation])
+  }, [rotation3D])
 
   const makeNode = useCallback(
     (x: number, y: number, vx = 0, vy = 0, kind: "node" | "spark" | "trail" = "node"): PlaygroundNode => {
@@ -259,26 +263,8 @@ function CanvasPlaygroundInner() {
       pointerRef.current.velocity = { x: 0, y: 0 }
       pointerRef.current.trail = []
 
-      // Increment click count
-      setClickCount((prev) => {
-        const newCount = prev + 1
-        clickCountRef.current = newCount
-
-        // Every 5 clicks, spawn a constellation
-        if (newCount % 5 === 0) {
-          spawnConstellation(currentConstellationRef.current, coords.x, coords.y, 120)
-          setCurrentConstellation((prevConst) => {
-            const newConst = (prevConst + 1) % CONSTELLATIONS.length
-            currentConstellationRef.current = newConst
-            return newConst
-          })
-        } else {
-          // Spawn initial burst on click
-          spawnCluster(coords.x, coords.y, 8)
-        }
-
-        return newCount
-      })
+      // Spawn burst on click
+      spawnCluster(coords.x, coords.y, 8)
     }
 
     const onContextMenu = (e: MouseEvent) => {
@@ -736,11 +722,11 @@ function CanvasPlaygroundInner() {
             <span className="hidden sm:inline">Drag slowly to attract • Drag fast to scatter • Right-click + drag to rotate 3D</span>
             <span className="sm:hidden">Tap to spawn • Drag to attract • 2 fingers to rotate 3D</span>
           </p>
-          <p className="m-0 mt-1 text-xs text-[rgba(127,180,255,0.8)] font-mono">
-            Clicks: {clickCount} • Every 5 clicks spawns {CONSTELLATIONS[currentConstellation].name}
-          </p>
         </div>
         <div className="flex gap-2 flex-wrap">
+          <button onClick={handleSpawnConstellation} className="btn text-[11px] px-3 py-2">
+            {CONSTELLATIONS[currentConstellation].name} ✦
+          </button>
           <button onClick={toggleMode} className="btn alt text-[11px] px-3 py-2">
             Mode: {mode === "calm" ? "Calm" : "Live"}
           </button>
@@ -749,13 +735,6 @@ function CanvasPlaygroundInner() {
           </button>
           <button onClick={spawnBurst} className="btn alt text-[11px] px-3 py-2">
             Burst
-          </button>
-          <button
-            onClick={() => setClickCount(0)}
-            className="btn alt text-[11px] px-3 py-2"
-            title="Reset click counter"
-          >
-            Reset Clicks
           </button>
         </div>
       </div>
