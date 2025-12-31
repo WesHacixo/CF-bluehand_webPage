@@ -71,6 +71,7 @@ function CanvasBackgroundInner() {
     spawnBurst: triggerBurst,
     toggleMode,
     pulseSeal: triggerPulseSeal,
+    activeZone,
   } = useApp()
 
   const themeColor = useMemo(() => THEME_COLORS[theme] || THEME_COLORS.neutral, [theme])
@@ -402,7 +403,8 @@ function CanvasBackgroundInner() {
     const backgroundThemeRef = { current: backgroundTheme }
 
     const step = (t: number) => {
-      if (!isVisibleRef.current) {
+      // Suspend when document hidden OR when engagement zone is active (temporal exclusivity)
+      if (!isVisibleRef.current || activeZone === "engagement") {
         frameRef.current = requestAnimationFrame(step)
         return
       }
@@ -623,6 +625,7 @@ function CanvasBackgroundInner() {
     triggerBurst,
     drawWireframeTheme,
     drawCircuitTheme,
+    activeZone,
   ])
 
   return <canvas ref={canvasRef} id="bg" className="fixed inset-0 w-full h-full block z-0 bg-transparent touch-none" />

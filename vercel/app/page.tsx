@@ -1,5 +1,5 @@
 import { Header } from "@/components/header"
-import { HeroShowcase } from "@/components/hero-showcase"
+import { AtmosphericFrame } from "@/components/atmospheric-frame"
 import { HeroSection } from "@/components/hero-section"
 import { SidePanel } from "@/components/side-panel"
 import { AuditSection } from "@/components/audit-section"
@@ -18,7 +18,7 @@ export default function Home() {
       <div className="shell relative z-[1] min-h-screen flex flex-col p-[clamp(16px,3vw,40px)] gap-10 md:gap-12">
         <Header />
 
-        <HeroShowcase />
+        <AtmosphericFrame />
 
         <main className="flex-1 grid grid-cols-1 lg:grid-cols-[1.35fr_0.65fr] gap-8 lg:gap-10 items-start">
           <HeroSection />

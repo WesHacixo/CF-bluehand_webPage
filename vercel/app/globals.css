@@ -516,6 +516,17 @@ select.form-input option {
   }
 }
 
+@keyframes fold-reveal {
+  from {
+    transform: scale(1);
+    border-radius: 0;
+  }
+  to {
+    transform: scale(0.92) translateY(-3vh);
+    border-radius: 18px;
+  }
+}
+
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
@@ -536,6 +547,10 @@ select.form-input option {
 
 .animate-scale-in {
   animation: scale-in 0.4s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.cinematic-fold {
+  animation: fold-reveal 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 /* Typography Utilities - Fluid Sizing */

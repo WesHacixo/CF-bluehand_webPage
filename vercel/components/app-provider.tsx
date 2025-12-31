@@ -6,6 +6,17 @@ import type { ServiceKey } from "./service-detail-modal"
 type Mode = "calm" | "live"
 type Theme = "neutral" | "sovereign" | "pipeline" | "mesh" | "interface" | "research" | "startup" | "ip" | "privacy"
 type BackgroundTheme = "neural" | "wireframe" | "circuit"
+type AtmosphericMode = "cinematic" | "ambient" | "rotating"
+type ViewportZone = "atmospheric" | "exchange" | "engagement"
+
+interface MediaAsset {
+  id: string
+  type: "video" | "image" | "photo-stream"
+  src: string | string[]
+  duration?: number
+  aspectRatio?: "16:9" | "21:9" | "custom"
+  poster?: string
+}
 
 interface AppState {
   mode: Mode
@@ -19,6 +30,12 @@ interface AppState {
   isServiceDetailOpen: boolean
   nodeCount: number
   linkCount: number
+
+  // Atmospheric Frame state
+  atmosphericMode: AtmosphericMode
+  hasSeenIntro: boolean
+  currentMedia: MediaAsset | null
+  activeZone: ViewportZone
 }
 
 interface AppContextType extends AppState {
@@ -37,6 +54,12 @@ interface AppContextType extends AppState {
   updateStats: (nodes: number, links: number) => void
   setSealPulse: (value: number) => void
   setBurst: (value: number) => void
+
+  // Atmospheric Frame methods
+  completeIntro: () => void
+  rotateMedia: () => void
+  setActiveZone: (zone: ViewportZone) => void
+  getNextMedia: () => MediaAsset
 }
 
 const AppContext = createContext<AppContextType | null>(null)
@@ -50,18 +73,51 @@ export function useApp() {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<AppState>({
-    mode: "calm",
-    theme: "neutral",
-    backgroundTheme: "neural",
-    sealPulse: 0,
-    burst: 0,
-    isModalOpen: false,
-    isContactFormOpen: false,
-    selectedService: null,
-    isServiceDetailOpen: false,
-    nodeCount: 0,
-    linkCount: 0,
+  // Media library (will move to separate file later)
+  const MEDIA_LIBRARY = {
+    cinematic: {
+      id: "intro-v1",
+      type: "video" as const,
+      src: "/media/intro-cinematic.mp4",
+      poster: "/media/intro-poster.jpg",
+      duration: 30,
+      aspectRatio: "16:9" as const,
+    },
+    ambient: [
+      {
+        id: "ambient-placeholder",
+        type: "video" as const,
+        src: "/media/ambient-loop.mp4",
+        duration: 0,
+      },
+    ],
+  }
+
+  const [state, setState] = useState<AppState>(() => {
+    // Check localStorage for intro flag
+    const hasSeenIntro = typeof window !== "undefined"
+      ? localStorage.getItem('bluehand:intro-seen') === 'true'
+      : false
+
+    return {
+      mode: "calm",
+      theme: "neutral",
+      backgroundTheme: "neural",
+      sealPulse: 0,
+      burst: 0,
+      isModalOpen: false,
+      isContactFormOpen: false,
+      selectedService: null,
+      isServiceDetailOpen: false,
+      nodeCount: 0,
+      linkCount: 0,
+
+      // Atmospheric state
+      atmosphericMode: hasSeenIntro ? "ambient" : "cinematic",
+      hasSeenIntro,
+      currentMedia: hasSeenIntro ? MEDIA_LIBRARY.ambient[0] : MEDIA_LIBRARY.cinematic,
+      activeZone: "atmospheric",
+    }
   })
 
   const toggleMode = useCallback(() => {
@@ -135,6 +191,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState((prev) => ({ ...prev, burst: value }))
   }, [])
 
+  // Atmospheric Frame methods
+  const completeIntro = useCallback(() => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem('bluehand:intro-seen', 'true')
+    }
+    setState((prev) => ({
+      ...prev,
+      atmosphericMode: "ambient",
+      hasSeenIntro: true,
+      currentMedia: MEDIA_LIBRARY.ambient[0],
+    }))
+  }, [])
+
+  const getNextMedia = useCallback((): MediaAsset => {
+    const pool = MEDIA_LIBRARY.ambient
+    const currentId = state.currentMedia?.id
+    const availableMedia = pool.filter(m => m.id !== currentId)
+    const randomIndex = Math.floor(Math.random() * availableMedia.length)
+    return availableMedia[randomIndex] || pool[0]
+  }, [state.currentMedia])
+
+  const rotateMedia = useCallback(() => {
+    const nextMedia = getNextMedia()
+    setState((prev) => ({
+      ...prev,
+      atmosphericMode: "rotating",
+      currentMedia: nextMedia,
+    }))
+  }, [getNextMedia])
+
+  const setActiveZone = useCallback((zone: ViewportZone) => {
+    setState((prev) => ({ ...prev, activeZone: zone }))
+  }, [])
+
   useEffect(() => {
     if (state.mode === "live") {
       const interval = setInterval(() => {
@@ -163,6 +253,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateStats,
         setSealPulse,
         setBurst,
+        completeIntro,
+        rotateMedia,
+        setActiveZone,
+        getNextMedia,
       }}
     >
       {children}
@@ -170,4 +264,4 @@ export function AppProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export type { BackgroundTheme }
+export type { BackgroundTheme, AtmosphericMode, ViewportZone, MediaAsset }

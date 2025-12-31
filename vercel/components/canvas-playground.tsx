@@ -44,7 +44,7 @@ function CanvasPlaygroundInner() {
   const frameRef = useRef<number>(0)
   const lastTimeRef = useRef(performance.now())
 
-  const { mode, theme, toggleMode, pulseSeal, spawnBurst, cycleBackgroundTheme, backgroundTheme } = useApp()
+  const { mode, theme, toggleMode, pulseSeal, spawnBurst, cycleBackgroundTheme, backgroundTheme, setActiveZone } = useApp()
 
   const themeColor = THEME_COLORS[theme] || THEME_COLORS.neutral
 
@@ -439,8 +439,31 @@ function CanvasPlaygroundInner() {
     }
   }, [makeNode, spawnCluster, themeColor, mode])
 
+  // Zone detection for temporal exclusivity - suspend background canvas when this is visible
+  useEffect(() => {
+    if (!containerRef.current) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && entry.intersectionRatio > 0.6) {
+            // Engagement zone is active - suspends background canvas rendering
+            setActiveZone("engagement")
+          } else {
+            // Return to exchange zone when scrolled away
+            setActiveZone("exchange")
+          }
+        })
+      },
+      { threshold: [0, 0.6, 1] },
+    )
+
+    observer.observe(containerRef.current)
+    return () => observer.disconnect()
+  }, [setActiveZone])
+
   return (
-    <section className="panel relative" ref={containerRef}>
+    <section className="panel relative" ref={containerRef} data-zone="engagement">
       <div className="fade" />
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
         <div>
