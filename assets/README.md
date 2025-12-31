@@ -26,6 +26,15 @@ These assets are stored on the `main` branch as part of the Platform-as-a-Contra
 - **Cloudflare branches**: Can reference from `../assets/images/` or maintain copies in `cloudflare/`
 - **Main branch**: Primary source of truth for shared assets
 
+### Vercel Platform Assets (`vercel/`)
+
+Collected from the production `Vercel-pr0` build so they are versioned alongside shared assets:
+
+- **Favicons**: `apple-icon.png`, `icon-dark-32x32.png`, `icon-light-32x32.png`, `icon.svg` (location: `assets/vercel/icons/`)
+- **Placeholders**: `placeholder-logo.(png|svg)`, `placeholder.(jpg|svg)`, `placeholder-user.jpg` (location: `assets/vercel/placeholders/`)
+
+These remain platform-specific but are stored here for provenance. Keep copies in `vercel/public/` for live deployments.
+
 ## Adding New Shared Assets
 
 When adding new brand assets or images that should be shared across branches:
