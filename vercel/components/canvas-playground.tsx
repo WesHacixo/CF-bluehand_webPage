@@ -103,6 +103,7 @@ function CanvasPlaygroundInner() {
   const frameRef = useRef<number>(0)
   const lastTimeRef = useRef(performance.now())
   const isVisibleRef = useRef(true)
+  const isInViewportRef = useRef(false) // Zone C viewport tracking
 
   // Interactivity state
   const [clickCount, setClickCount] = useState(0)
@@ -226,6 +227,26 @@ function CanvasPlaygroundInner() {
 
     resize()
     window.addEventListener("resize", resize)
+
+    // Zone C Runtime Governance: Viewport-based suspension
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isInViewportRef.current = entry.isIntersecting
+        if (entry.isIntersecting && isVisibleRef.current) {
+          // Resume: Zone C entering viewport
+          lastTimeRef.current = performance.now()
+          if (frameRef.current === 0) {
+            frameRef.current = requestAnimationFrame(step)
+          }
+        } else {
+          // Suspend: Zone C leaving viewport
+          cancelAnimationFrame(frameRef.current)
+          frameRef.current = 0
+        }
+      },
+      { threshold: 0.1 } // Activate when 10% visible
+    )
+    observer.observe(canvas)
 
     const getCanvasCoords = (e: MouseEvent | TouchEvent) => {
       const rect = canvas.getBoundingClientRect()
@@ -463,16 +484,25 @@ function CanvasPlaygroundInner() {
     // Visibility API for performance
     const handleVisibilityChange = () => {
       isVisibleRef.current = !document.hidden
-      if (isVisibleRef.current) {
+      if (isVisibleRef.current && isInViewportRef.current) {
+        // Resume if both visible AND in viewport
         lastTimeRef.current = performance.now()
+        if (frameRef.current === 0) {
+          frameRef.current = requestAnimationFrame(step)
+        }
+      } else {
+        // Suspend if hidden OR out of viewport
+        cancelAnimationFrame(frameRef.current)
+        frameRef.current = 0
       }
     }
     document.addEventListener("visibilitychange", handleVisibilityChange)
 
-    // Animation loop
+    // Animation loop - Zone C HP-Interactive engine
     const step = (t: number) => {
-      if (!isVisibleRef.current) {
-        frameRef.current = requestAnimationFrame(step)
+      // Runtime governance: Only render when visible AND in viewport
+      if (!isVisibleRef.current || !isInViewportRef.current) {
+        frameRef.current = 0
         return
       }
 
@@ -706,6 +736,7 @@ function CanvasPlaygroundInner() {
 
     return () => {
       cancelAnimationFrame(frameRef.current)
+      observer.disconnect()
       window.removeEventListener("resize", resize)
       document.removeEventListener("visibilitychange", handleVisibilityChange)
       canvas.removeEventListener("mousedown", onPointerDown)
