@@ -6,6 +6,9 @@ This repository contains both the **Cloudflare** (static HTML) and **Vercel** (N
 
 ```
 CF-bluehand_webPage/
+├── assets/              # Shared brand assets (PaaC - Platform as a Contract)
+│   ├── images/          # Brand logos, icons, and shared images
+│   └── README.md        # Asset documentation
 ├── cloudflare/          # Static HTML version for Cloudflare Pages
 │   ├── index-optimized.html
 │   ├── _headers
@@ -64,11 +67,18 @@ See `vercel/README.md` for detailed instructions.
   - Constellation canvas playground
 - **Deployment**: Vercel (Next.js platform)
 
+## Shared Assets
+
+Brand assets and images that are shared across all branches are stored in the `assets/` directory on the `main` branch. This follows the Platform-as-a-Contract (PaaC) framework where reusable, overarching assets are maintained centrally.
+
+See `assets/README.md` for details on available assets and usage guidelines.
+
 ## Documentation
 
 - `.cursorrules` - **Cursor AI project rules and guidelines**
 - `PROJECT_RULES.md` - **Git workflow, commit conventions, and project rules**
 - `BRANCH_STRATEGY.md` - Branch organization and usage
+- `assets/README.md` - Shared assets documentation
 - `docs/DEPLOYMENT.md` - Complete deployment guide
 - `docs/OPTIMIZATION.md` - Performance optimizations
 - `cloudflare/README.md` - Cloudflare-specific docs
