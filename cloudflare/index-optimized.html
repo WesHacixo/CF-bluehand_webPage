@@ -111,15 +111,31 @@
         --text-primary: rgba(234, 240, 255, 0.95);
         --text-body: rgba(234, 240, 255, 0.88);
         --text-muted: rgba(169, 183, 230, 0.85);
-        --text-subtle: rgba(169, 183, 230, 0.70);
+        --text-subtle: rgba(169, 183, 230, 0.7);
 
-        /* Spacing System (8px base) */
-        --space-xs: 4px;
-        --space-sm: 8px;
-        --space-md: 12px;
-        --space-lg: 16px;
-        --space-xl: 24px;
-        --space-2xl: 32px;
+        /* Fibonacci-Based Spacing System (8px base) */
+        --space-0: 0;
+        --space-1: 4px; /* 0.5x base */
+        --space-2: 8px; /* 1x base - atomic unit */
+        --space-3: 12px; /* 1.5x base */
+        --space-4: 16px; /* 2x base */
+        --space-5: 24px; /* 3x base */
+        --space-6: 40px; /* 5x base */
+        --space-7: 64px; /* 8x base */
+        --space-8: 104px; /* 13x base */
+
+        /* Micro-adjustments for visual perfection */
+        --space-tight: 6px; /* Between related elements */
+        --space-normal: 10px; /* Standard spacing */
+        --space-loose: 20px; /* Between sections */
+
+        /* Legacy aliases for compatibility */
+        --space-xs: var(--space-1);
+        --space-sm: var(--space-2);
+        --space-md: var(--space-3);
+        --space-lg: var(--space-4);
+        --space-xl: var(--space-5);
+        --space-2xl: var(--space-6);
 
         /* Border Radius */
         --radius-sm: 8px;
@@ -132,25 +148,29 @@
         --transition-base: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
         --transition-slow: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 
+        /* Vertical Rhythm System */
+        --baseline: 1.5;
+        --line-height-base: calc(1rem * var(--baseline)); /* 24px at 16px base */
+        --rhythm-1: var(--line-height-base); /* 24px */
+        --rhythm-2: calc(var(--line-height-base) * 2); /* 48px */
+        --rhythm-3: calc(var(--line-height-base) * 3); /* 72px */
+
         --shadow: 0 18px 60px rgba(0, 0, 0, 0.35);
         --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
           "Liberation Mono", "Courier New", monospace;
 
         /* Variable Font Support */
-        --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 
-                     'SF Pro Text', 'Segoe UI Variable', 'Segoe UI', 
-                     system-ui, ui-sans-serif, sans-serif;
-        
+        --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+          "SF Pro Text", "Segoe UI Variable", "Segoe UI", system-ui,
+          ui-sans-serif, sans-serif;
+
         /* Typography Glow/Brightness Diffusion */
         --text-glow-subtle: 0 0 0.5px rgba(234, 240, 255, 0.3),
-                            0 0 1px rgba(234, 240, 255, 0.2),
-                            0 0 2px rgba(234, 240, 255, 0.1);
+          0 0 1px rgba(234, 240, 255, 0.2), 0 0 2px rgba(234, 240, 255, 0.1);
         --text-glow-soft: 0 0 1px rgba(234, 240, 255, 0.4),
-                          0 0 2px rgba(234, 240, 255, 0.25),
-                          0 0 4px rgba(234, 240, 255, 0.15);
+          0 0 2px rgba(234, 240, 255, 0.25), 0 0 4px rgba(234, 240, 255, 0.15);
         --text-glow-medium: 0 0 1.5px rgba(234, 240, 255, 0.5),
-                            0 0 3px rgba(234, 240, 255, 0.3),
-                            0 0 6px rgba(234, 240, 255, 0.2);
+          0 0 3px rgba(234, 240, 255, 0.3), 0 0 6px rgba(234, 240, 255, 0.2);
       }
 
       * {
@@ -195,21 +215,21 @@
         min-height: 100%;
         display: flex;
         flex-direction: column;
-        padding: clamp(18px, 3vw, 40px);
-        gap: 22px;
+        padding: clamp(var(--space-5), 3vw, var(--space-6));
+        gap: var(--rhythm-2);
       }
 
       header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 14px;
+        gap: var(--space-4);
       }
 
       .brand {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: var(--space-3);
         user-select: none;
       }
 
@@ -281,7 +301,7 @@
 
       nav {
         display: flex;
-        gap: 10px;
+        gap: var(--space-3);
         align-items: center;
         flex-wrap: wrap;
         justify-content: flex-end;
@@ -292,7 +312,7 @@
         background: rgba(10, 18, 45, 0.25);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
-        padding: 10px 12px;
+        padding: var(--space-3) var(--space-4);
         border-radius: var(--radius-full);
         color: var(--text-primary);
         font-size: 12px;
@@ -302,10 +322,9 @@
         font-weight: 500;
         font-variation-settings: "wght" 500, "opsz" 12;
         text-shadow: var(--text-glow-subtle);
-        transition: transform var(--transition-fast), 
-                    border-color var(--transition-fast),
-                    background var(--transition-fast),
-                    text-shadow var(--transition-fast);
+        transition: transform var(--transition-fast),
+          border-color var(--transition-fast), background var(--transition-fast),
+          text-shadow var(--transition-fast);
         user-select: none;
         cursor: pointer;
         white-space: nowrap;
@@ -330,7 +349,7 @@
         flex: 1;
         display: grid;
         grid-template-columns: 1.35fr 0.65fr;
-        gap: 18px;
+        gap: clamp(var(--space-4), 2.5vw, var(--space-5));
         align-items: start;
       }
 
@@ -340,7 +359,7 @@
         backdrop-filter: blur(14px);
         -webkit-backdrop-filter: blur(14px);
         border-radius: var(--radius-lg);
-        padding: clamp(18px, 2.4vw, 26px);
+        padding: clamp(var(--space-5), 2.4vw + 0.5rem, var(--space-6));
         box-shadow: var(--shadow);
         overflow: hidden;
         position: relative;
@@ -348,7 +367,7 @@
 
       .hero h2 {
         font-size: clamp(32px, 4.8vw, 58px);
-        margin: 6px 0 10px 0;
+        margin: var(--space-2) 0 var(--space-3) 0;
         line-height: 1.1;
         letter-spacing: -0.02em;
         font-weight: 600;
@@ -373,9 +392,9 @@
 
       .ctaRow {
         display: flex;
-        gap: 10px;
+        gap: var(--space-3);
         flex-wrap: wrap;
-        margin-top: 18px;
+        margin-top: var(--space-5);
         align-items: center;
       }
 
@@ -383,7 +402,7 @@
         border: 1px solid rgba(127, 180, 255, 0.35);
         background: rgba(127, 180, 255, 0.12);
         color: var(--ink);
-        padding: 12px 14px;
+        padding: var(--space-3) var(--space-4);
         border-radius: var(--radius-md);
         text-decoration: none;
         font-weight: 600;
@@ -392,12 +411,11 @@
         font-size: 12px;
         font-variation-settings: "wght" 600, "opsz" 12;
         text-shadow: var(--text-glow-soft);
-        transition: transform var(--transition-fast), 
-                    background var(--transition-fast),
-                    border-color var(--transition-fast),
-                    box-shadow var(--transition-fast),
-                    font-variation-settings var(--transition-fast),
-                    text-shadow var(--transition-fast);
+        transition: transform var(--transition-fast),
+          background var(--transition-fast), border-color var(--transition-fast),
+          box-shadow var(--transition-fast),
+          font-variation-settings var(--transition-fast),
+          text-shadow var(--transition-fast);
         cursor: pointer;
         user-select: none;
       }
@@ -422,15 +440,15 @@
       .grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 10px;
-        margin-top: 18px;
+        gap: clamp(var(--space-4), 2.5vw, var(--space-5));
+        margin-top: var(--space-5);
       }
 
       .card {
         border: 1px solid rgba(255, 255, 255, 0.1);
         background: rgba(0, 0, 0, 0.18);
-        border-radius: 14px;
-        padding: 12px;
+        border-radius: var(--radius-lg);
+        padding: var(--space-4);
         transition: transform 0.18s ease, border-color 0.18s ease,
           background 0.18s ease;
         cursor: pointer;
@@ -449,7 +467,7 @@
         text-transform: uppercase;
         letter-spacing: 0.14em;
         color: var(--text-muted);
-        margin: 0 0 6px 0;
+        margin: 0 0 var(--space-2) 0;
         font-weight: 500;
         font-variation-settings: "wght" 500, "opsz" 12;
         text-shadow: var(--text-glow-subtle);
@@ -465,7 +483,7 @@
       }
 
       .side h3 {
-        margin: 0 0 8px 0;
+        margin: 0 0 var(--space-2) 0;
         font-size: 14px;
         letter-spacing: 0.18em;
         text-transform: uppercase;
@@ -476,7 +494,7 @@
       }
 
       .side p {
-        margin: 0 0 14px 0;
+        margin: 0 0 var(--space-4) 0;
         color: var(--text-body);
         font-size: 13px;
         line-height: 1.6;
@@ -488,12 +506,30 @@
       .list {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: var(--space-3);
+      }
+
+      /* Stack System - Automatic Vertical Spacing */
+      .stack {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .stack > * + * {
+        margin-top: var(--space-4);
+      }
+
+      .stack-tight > * + * {
+        margin-top: var(--space-2);
+      }
+
+      .stack-loose > * + * {
+        margin-top: var(--space-6);
       }
 
       .item {
-        padding: 12px;
-        border-radius: 14px;
+        padding: var(--space-4);
+        border-radius: var(--radius-lg);
         border: 1px solid rgba(255, 255, 255, 0.1);
         background: rgba(0, 0, 0, 0.16);
         transition: transform 0.18s ease, border-color 0.18s ease;
@@ -513,7 +549,7 @@
         letter-spacing: 0.12em;
         text-transform: uppercase;
         color: var(--text-primary);
-        margin-bottom: 6px;
+        margin-bottom: var(--space-2);
         font-weight: 500;
         font-variation-settings: "wght" 500, "opsz" 12;
         text-shadow: var(--text-glow-subtle);
@@ -531,11 +567,13 @@
       footer {
         display: flex;
         justify-content: space-between;
-        gap: 12px;
+        gap: var(--space-4);
         align-items: center;
         color: var(--text-muted);
         font-size: 12px;
         letter-spacing: 0.08em;
+        padding: var(--space-4) 0;
+        margin-top: var(--rhythm-2);
         padding-bottom: env(safe-area-inset-bottom);
         font-weight: 400;
         font-variation-settings: "wght" 400, "opsz" 12;
@@ -977,7 +1015,7 @@
             padding: 16px;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
+            gap: var(--space-3);
           "
         >
           <div class="card">
