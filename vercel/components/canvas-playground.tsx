@@ -103,20 +103,15 @@ function CanvasPlaygroundInner() {
   const frameRef = useRef<number>(0)
   const lastTimeRef = useRef(performance.now())
   const isVisibleRef = useRef(true)
-  const isInViewportRef = useRef(false) // Zone C viewport tracking
 
   // Interactivity state
   const [clickCount, setClickCount] = useState(0)
   const [rotation3D, setRotation3D] = useState({ x: 0, y: 0 })
   const [currentConstellation, setCurrentConstellation] = useState(0)
-  const [researchMode, setResearchMode] = useState(false)
-  const [discoveredConcepts, setDiscoveredConcepts] = useState<Set<string>>(new Set())
   const rotationStartRef = useRef({ x: 0, y: 0, active: false })
-  const lastSpeedRef = useRef(0)
 
   // Refs for values used in animation loop to avoid effect re-runs
   const rotation3DRef = useRef(rotation3D)
-  const researchModeRef = useRef(researchMode)
   const clickCountRef = useRef(clickCount)
   const currentConstellationRef = useRef(currentConstellation)
 
@@ -133,10 +128,9 @@ function CanvasPlaygroundInner() {
   // Sync refs with state to avoid effect re-runs
   useEffect(() => {
     rotation3DRef.current = rotation3D
-    researchModeRef.current = researchMode
     clickCountRef.current = clickCount
     currentConstellationRef.current = currentConstellation
-  }, [rotation3D, researchMode, clickCount, currentConstellation])
+  }, [rotation3D, clickCount, currentConstellation])
 
   const makeNode = useCallback(
     (x: number, y: number, vx = 0, vy = 0, kind: "node" | "spark" | "trail" = "node"): PlaygroundNode => {
@@ -242,26 +236,6 @@ function CanvasPlaygroundInner() {
     resize()
     window.addEventListener("resize", resize)
 
-    // Zone C Runtime Governance: Viewport-based suspension
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        isInViewportRef.current = entry.isIntersecting
-        if (entry.isIntersecting && isVisibleRef.current) {
-          // Resume: Zone C entering viewport
-          lastTimeRef.current = performance.now()
-          if (frameRef.current === 0) {
-            frameRef.current = requestAnimationFrame(step)
-          }
-        } else {
-          // Suspend: Zone C leaving viewport
-          cancelAnimationFrame(frameRef.current)
-          frameRef.current = 0
-        }
-      },
-      { threshold: 0.1 } // Activate when 10% visible
-    )
-    observer.observe(canvas)
-
     const getCanvasCoords = (e: MouseEvent | TouchEvent) => {
       const rect = canvas.getBoundingClientRect()
       const t = "touches" in e ? e.touches[0] || e.changedTouches[0] : null
@@ -298,11 +272,6 @@ function CanvasPlaygroundInner() {
             currentConstellationRef.current = newConst
             return newConst
           })
-
-          // Research mode: discover constellation patterns
-          if (researchModeRef.current) {
-            setDiscoveredConcepts(prev => new Set(prev).add("constellation"))
-          }
         } else {
           // Spawn initial burst on click
           spawnCluster(coords.x, coords.y, 8)
@@ -386,31 +355,16 @@ function CanvasPlaygroundInner() {
               const force = (1 - dist / repulsionRadius) * 0.8
               n.vx += normalizedDx * force * (speed * 0.05)
               n.vy += normalizedDy * force * (speed * 0.05)
-
-              // Research mode: discover repulsion
-              if (researchModeRef.current) {
-                setDiscoveredConcepts(prev => new Set(prev).add("repulsion"))
-              }
             } else if (speed < 8) {
               // Slow drag = gentle attraction (gravitational pull)
               const force = (1 - dist / attractionRadius) * 0.15
               n.vx -= normalizedDx * force
               n.vy -= normalizedDy * force
-
-              // Research mode: discover attraction
-              if (researchModeRef.current) {
-                setDiscoveredConcepts(prev => new Set(prev).add("attraction"))
-              }
             } else {
               // Medium speed = swirl effect
               const force = (1 - dist / attractionRadius) * 0.1
               n.vx += normalizedDy * force * Math.sign(dx)
               n.vy -= normalizedDx * force * Math.sign(dx)
-
-              // Research mode: discover orbital motion
-              if (researchModeRef.current) {
-                setDiscoveredConcepts(prev => new Set(prev).add("orbital"))
-              }
             }
           }
         }
@@ -507,24 +461,21 @@ function CanvasPlaygroundInner() {
     // Visibility API for performance
     const handleVisibilityChange = () => {
       isVisibleRef.current = !document.hidden
-      if (isVisibleRef.current && isInViewportRef.current) {
-        // Resume if both visible AND in viewport
+      if (isVisibleRef.current) {
         lastTimeRef.current = performance.now()
         if (frameRef.current === 0) {
           frameRef.current = requestAnimationFrame(step)
         }
       } else {
-        // Suspend if hidden OR out of viewport
         cancelAnimationFrame(frameRef.current)
         frameRef.current = 0
       }
     }
     document.addEventListener("visibilitychange", handleVisibilityChange)
 
-    // Animation loop - Zone C HP-Interactive engine
+    // Animation loop
     const step = (t: number) => {
-      // Runtime governance: Only render when visible AND in viewport
-      if (!isVisibleRef.current || !isInViewportRef.current) {
+      if (!isVisibleRef.current) {
         frameRef.current = 0
         return
       }
@@ -759,7 +710,6 @@ function CanvasPlaygroundInner() {
 
     return () => {
       cancelAnimationFrame(frameRef.current)
-      observer.disconnect()
       window.removeEventListener("resize", resize)
       document.removeEventListener("visibilitychange", handleVisibilityChange)
       canvas.removeEventListener("mousedown", onPointerDown)
@@ -775,7 +725,7 @@ function CanvasPlaygroundInner() {
   }, [makeNode, spawnCluster, spawnConstellation, themeColor, mode])
 
   return (
-    <section className="panel relative" ref={containerRef} id="preliminary-results">
+    <section className="panel relative" ref={containerRef}>
       <div className="fade" />
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
         <div>
@@ -791,13 +741,6 @@ function CanvasPlaygroundInner() {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <button
-            onClick={() => setResearchMode(!researchMode)}
-            className={`btn ${researchMode ? "" : "alt"} text-[11px] px-3 py-2`}
-            title="Toggle research documentation"
-          >
-            {researchMode ? "Research: ON" : "Research Mode"}
-          </button>
           <button onClick={toggleMode} className="btn alt text-[11px] px-3 py-2">
             Mode: {mode === "calm" ? "Calm" : "Live"}
           </button>
@@ -828,64 +771,6 @@ function CanvasPlaygroundInner() {
           objectFit: "contain",
         }}
       />
-
-      {/* Research Mode Overlay */}
-      {researchMode && (
-        <div className="absolute bottom-4 left-4 right-4 bg-black/80 backdrop-blur-sm border border-[rgba(127,180,255,0.3)] rounded-lg p-4 text-xs">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-2 h-2 bg-[rgb(127,180,255)] rounded-full animate-pulse" />
-            <span className="text-[rgba(127,180,255,0.9)] font-mono uppercase tracking-wider">
-              HCI Research: Multi-Modal Gestural Physics
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[rgba(234,240,255,0.7)]">
-            <div>
-              <span className="text-[rgba(127,180,255,0.8)]">Speed:</span>{" "}
-              {lastSpeedRef.current < 8 ? "Slow" : lastSpeedRef.current > 15 ? "Fast" : "Medium"}
-            </div>
-            <div>
-              <span className="text-[rgba(127,180,255,0.8)]">Mode:</span>{" "}
-              {lastSpeedRef.current < 8 ? "Attraction" : lastSpeedRef.current > 15 ? "Repulsion" : "Orbital"}
-            </div>
-          </div>
-
-          <div className="mt-3 pt-3 border-t border-[rgba(127,180,255,0.2)]">
-            <div className="text-[rgba(127,180,255,0.8)] mb-1">Discovered Concepts:</div>
-            <div className="flex flex-wrap gap-2">
-              {discoveredConcepts.has("attraction") && (
-                <span className="px-2 py-1 bg-[rgba(127,180,255,0.1)] border border-[rgba(127,180,255,0.3)] rounded text-[rgba(234,240,255,0.9)]">
-                  Gravitational Attraction
-                </span>
-              )}
-              {discoveredConcepts.has("repulsion") && (
-                <span className="px-2 py-1 bg-[rgba(255,93,125,0.1)] border border-[rgba(255,93,125,0.3)] rounded text-[rgba(234,240,255,0.9)]">
-                  Explosive Repulsion
-                </span>
-              )}
-              {discoveredConcepts.has("orbital") && (
-                <span className="px-2 py-1 bg-[rgba(255,181,90,0.1)] border border-[rgba(255,181,90,0.3)] rounded text-[rgba(234,240,255,0.9)]">
-                  Orbital Motion
-                </span>
-              )}
-              {discoveredConcepts.has("constellation") && (
-                <span className="px-2 py-1 bg-[rgba(170,210,255,0.1)] border border-[rgba(170,210,255,0.3)] rounded text-[rgba(234,240,255,0.9)]">
-                  Graph Topology
-                </span>
-              )}
-              {discoveredConcepts.size === 0 && (
-                <span className="text-[rgba(234,240,255,0.5)] italic">
-                  Interact to discover physics concepts...
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-3 pt-3 border-t border-[rgba(127,180,255,0.2)] text-[rgba(234,240,255,0.6)]">
-            <strong>Research Question:</strong> Can speed-based gestural interaction make complex system dynamics more intuitive than traditional visualization?
-          </div>
-        </div>
-      )}
     </section>
   )
 }

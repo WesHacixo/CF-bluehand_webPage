@@ -42,7 +42,6 @@ function CanvasBackgroundInner() {
   const dimensionsRef = useRef({ W: 0, H: 0, DPR: 1 })
   const frameRef = useRef<number>(0)
   const isVisibleRef = useRef(true)
-  const isInViewportRef = useRef(false) // Zone A viewport tracking
 
   const {
     mode,
@@ -193,38 +192,10 @@ function CanvasBackgroundInner() {
       if (k === "b") triggerBurst()
     }
 
-    // Zone A Runtime Governance: Viewport-based suspension
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        isInViewportRef.current = entry.isIntersecting
-        if (entry.isIntersecting && isVisibleRef.current) {
-          // Resume: Zone A entering viewport
-          stateRef.current.lastT = performance.now()
-          if (frameRef.current === 0) {
-            frameRef.current = requestAnimationFrame(step)
-          }
-        } else {
-          // Suspend: Zone A leaving viewport
-          cancelAnimationFrame(frameRef.current)
-          frameRef.current = 0
-        }
-      },
-      { threshold: 0.1 } // Activate when 10% visible
-    )
-    observer.observe(canvas)
-
     const onVisibilityChange = () => {
       isVisibleRef.current = document.visibilityState === "visible"
-      if (isVisibleRef.current && isInViewportRef.current) {
-        // Resume if both visible AND in viewport
+      if (isVisibleRef.current) {
         stateRef.current.lastT = performance.now()
-        if (frameRef.current === 0) {
-          frameRef.current = requestAnimationFrame(step)
-        }
-      } else {
-        // Suspend if hidden OR out of viewport
-        cancelAnimationFrame(frameRef.current)
-        frameRef.current = 0
       }
     }
 
@@ -244,11 +215,9 @@ function CanvasBackgroundInner() {
     const sealPulseRef = { current: sealPulse }
     const themeColorRef = { current: themeColor }
 
-    // Animation loop - Zone A HP-Cinematic engine
     const step = (t: number) => {
-      // Runtime governance: Only render when visible AND in viewport
-      if (!isVisibleRef.current || !isInViewportRef.current) {
-        frameRef.current = 0
+      if (!isVisibleRef.current) {
+        frameRef.current = requestAnimationFrame(step)
         return
       }
 
@@ -424,7 +393,6 @@ function CanvasBackgroundInner() {
 
     return () => {
       cancelAnimationFrame(frameRef.current)
-      observer.disconnect()
       clearInterval(syncInterval)
       window.removeEventListener("resize", resize)
       window.removeEventListener("mousemove", onPointerMove)
