@@ -1,6 +1,6 @@
 "use client"
 
-import { memo, useRef, useEffect, useCallback } from "react"
+import { memo, useRef, useEffect, useCallback, useState } from "react"
 import { useApp } from "./app-provider"
 import type { Theme } from "./app-provider"
 
@@ -11,9 +11,10 @@ interface PlaygroundNode {
   vy: number
   r: number
   life: number
-  kind: "node" | "spark" | "trail"
+  kind: "node" | "spark" | "trail" | "constellation"
   hue: number
   age: number
+  constellationId?: string
   // Structural properties for fade effect
   connectionCount?: number // Number of connections this node has
   structuralWeight?: number // Calculated structural importance
@@ -23,6 +24,64 @@ interface PlaygroundNode {
   baseY?: number
   rotationAngle?: number // Current rotation angle for this cluster
 }
+
+// Real constellation data (normalized coordinates 0-1)
+interface Constellation {
+  name: string
+  stars: { x: number; y: number; magnitude?: number }[]
+  connections: [number, number][]
+}
+
+const CONSTELLATIONS: Constellation[] = [
+  {
+    name: "Orion",
+    stars: [
+      { x: 0.45, y: 0.3, magnitude: 0.5 }, // Betelgeuse
+      { x: 0.55, y: 0.7, magnitude: 0.3 }, // Rigel
+      { x: 0.48, y: 0.5, magnitude: 0.8 }, // Belt star 1
+      { x: 0.5, y: 0.5, magnitude: 0.8 }, // Belt star 2
+      { x: 0.52, y: 0.5, magnitude: 0.8 }, // Belt star 3
+      { x: 0.42, y: 0.4, magnitude: 0.7 }, // Shoulder
+      { x: 0.58, y: 0.4, magnitude: 0.7 }, // Shoulder
+    ],
+    connections: [[0, 5], [5, 2], [2, 3], [3, 4], [4, 6], [6, 1], [2, 1]],
+  },
+  {
+    name: "Ursa Major",
+    stars: [
+      { x: 0.3, y: 0.4, magnitude: 0.6 },
+      { x: 0.35, y: 0.35, magnitude: 0.6 },
+      { x: 0.4, y: 0.35, magnitude: 0.6 },
+      { x: 0.45, y: 0.4, magnitude: 0.6 },
+      { x: 0.42, y: 0.5, magnitude: 0.5 },
+      { x: 0.35, y: 0.5, magnitude: 0.5 },
+      { x: 0.32, y: 0.55, magnitude: 0.5 },
+    ],
+    connections: [[0, 1], [1, 2], [2, 3], [3, 4], [4, 5], [5, 6], [6, 0]],
+  },
+  {
+    name: "Cassiopeia",
+    stars: [
+      { x: 0.4, y: 0.3, magnitude: 0.6 },
+      { x: 0.45, y: 0.25, magnitude: 0.6 },
+      { x: 0.5, y: 0.3, magnitude: 0.7 },
+      { x: 0.55, y: 0.25, magnitude: 0.6 },
+      { x: 0.6, y: 0.3, magnitude: 0.6 },
+    ],
+    connections: [[0, 1], [1, 2], [2, 3], [3, 4]],
+  },
+  {
+    name: "Cygnus",
+    stars: [
+      { x: 0.5, y: 0.2, magnitude: 0.5 }, // Deneb
+      { x: 0.5, y: 0.5, magnitude: 0.6 }, // Center
+      { x: 0.4, y: 0.55, magnitude: 0.7 }, // Wing
+      { x: 0.6, y: 0.55, magnitude: 0.7 }, // Wing
+      { x: 0.5, y: 0.7, magnitude: 0.6 }, // Tail
+    ],
+    connections: [[0, 1], [1, 2], [1, 3], [1, 4]],
+  },
+]
 
 const THEME_COLORS: Record<string, [number, number, number]> = {
   sovereign: [127, 180, 255],
@@ -64,6 +123,24 @@ function CanvasPlaygroundInner() {
   const dyadsRef = useRef<Map<number, { clusterA: number; clusterB: number; wavePhase: number; waveAmplitude: number }>>(new Map())
   const dyadIdCounterRef = useRef(0)
   const waveTimeRef = useRef(0) // Global wave time for synchronization
+
+  // 3D rotation and constellation state
+  const [rotation3D, setRotation3D] = useState({ x: 0, y: 0 })
+  const [currentConstellation, setCurrentConstellation] = useState(0)
+  const rotationStartRef = useRef({ x: 0, y: 0, active: false })
+  const rotation3DRef = useRef(rotation3D)
+
+  // Touch gesture state
+  const touchStateRef = useRef({
+    initialDistance: 0,
+    initialAngle: 0,
+    isTwoFinger: false,
+  })
+
+  // Sync rotation ref
+  useEffect(() => {
+    rotation3DRef.current = rotation3D
+  }, [rotation3D])
 
   const { mode, theme, toggleMode, pulseSeal, spawnBurst, sealPulse, burst, setTheme } = useApp()
 
@@ -129,6 +206,34 @@ function CanvasPlaygroundInner() {
     },
     [makeNode],
   )
+
+  const spawnConstellation = useCallback(
+    (constellationIndex: number, centerX: number, centerY: number, scale = 100) => {
+      const constellation = CONSTELLATIONS[constellationIndex]
+      const constellationId = `${constellation.name}-${Date.now()}`
+
+      constellation.stars.forEach((star) => {
+        const x = centerX + (star.x - 0.5) * scale
+        const y = centerY + (star.y - 0.5) * scale
+        const magnitude = star.magnitude || 0.5
+        const node = makeNode(x, y, 0, 0, "node")
+        node.kind = "constellation"
+        node.constellationId = constellationId
+        node.r = 2 + magnitude * 2
+        nodesRef.current.push(node)
+      })
+    },
+    [makeNode],
+  )
+
+  // Spawn constellation at center with button
+  const handleSpawnConstellation = () => {
+    const { W, H } = dimensionsRef.current
+    if (W && H) {
+      spawnConstellation(currentConstellation, W / 2, H / 2, 150)
+      setCurrentConstellation((prev) => (prev + 1) % CONSTELLATIONS.length)
+    }
+  }
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -239,11 +344,31 @@ function CanvasPlaygroundInner() {
       pointerRef.current.trail = []
 
       // Spawn initial burst on click
-      spawnCluster(coords.x, coords.y, 8)
+      if (!touchStateRef.current.isTwoFinger) {
+        spawnCluster(coords.x, coords.y, 8)
+      }
+    }
+
+    const onContextMenu = (e: MouseEvent) => {
+      e.preventDefault()
+      const coords = getCanvasCoords(e)
+      rotationStartRef.current = { x: coords.x, y: coords.y, active: true }
     }
 
     const onPointerMove = (e: MouseEvent | TouchEvent) => {
       const coords = getCanvasCoords(e)
+
+      // Handle right-click 3D rotation
+      if (rotationStartRef.current.active && e instanceof MouseEvent && e.buttons === 2) {
+        const dx = coords.x - rotationStartRef.current.x
+        const dy = coords.y - rotationStartRef.current.y
+        setRotation3D((prev) => ({
+          x: prev.x + dy * 0.005,
+          y: prev.y + dx * 0.005,
+        }))
+        rotationStartRef.current = { x: coords.x, y: coords.y, active: true }
+        return
+      }
 
       if (pointerRef.current.down) {
         const dx = coords.x - pointerRef.current.lastX
@@ -333,12 +458,14 @@ function CanvasPlaygroundInner() {
         }
       }
       pointerRef.current.down = false
+      rotationStartRef.current.active = false
     }
 
     canvas.addEventListener("mousedown", onPointerDown)
     canvas.addEventListener("mousemove", onPointerMove)
     canvas.addEventListener("mouseup", onPointerUp)
     canvas.addEventListener("mouseleave", onPointerUp)
+    canvas.addEventListener("contextmenu", onContextMenu)
     canvas.addEventListener("touchstart", onPointerDown, { passive: true })
     canvas.addEventListener("touchmove", onPointerMove, { passive: true })
     canvas.addEventListener("touchend", onPointerUp)
@@ -356,6 +483,16 @@ function CanvasPlaygroundInner() {
       // Subtle background
       ctx.fillStyle = "rgba(5, 8, 20, 0.3)"
       ctx.fillRect(0, 0, W, H)
+
+      // Apply 3D rotation transform
+      ctx.save()
+      ctx.translate(W / 2, H / 2)
+      const scaleX = Math.cos(rotation3DRef.current.y)
+      const scaleY = Math.cos(rotation3DRef.current.x)
+      const skewX = Math.sin(rotation3DRef.current.y) * 0.5
+      const skewY = Math.sin(rotation3DRef.current.x) * 0.5
+      ctx.transform(scaleX, skewY, skewX, scaleY, 0, 0)
+      ctx.translate(-W / 2, -H / 2)
 
       const nodes = nodesRef.current
       const [r, g, b] = themeColor
@@ -899,6 +1036,37 @@ function CanvasPlaygroundInner() {
         }
       } // End pulse-driven wave rendering
 
+      // Draw constellation connections first
+      const constellationNodes = new Map<string, PlaygroundNode[]>()
+      nodes.forEach((node) => {
+        if (node.kind === "constellation" && node.constellationId) {
+          if (!constellationNodes.has(node.constellationId)) {
+            constellationNodes.set(node.constellationId, [])
+          }
+          constellationNodes.get(node.constellationId)!.push(node)
+        }
+      })
+
+      constellationNodes.forEach((constNodes, constellationId) => {
+        const constellationName = constellationId.split("-")[0]
+        const constellation = CONSTELLATIONS.find((c) => c.name === constellationName)
+        if (!constellation) return
+
+        ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.6)`
+        ctx.lineWidth = 2
+
+        constellation.connections.forEach(([startIdx, endIdx]) => {
+          if (startIdx < constNodes.length && endIdx < constNodes.length) {
+            const start = constNodes[startIdx]
+            const end = constNodes[endIdx]
+            ctx.beginPath()
+            ctx.moveTo(start.x, start.y)
+            ctx.lineTo(end.x, end.y)
+            ctx.stroke()
+          }
+        })
+      })
+
       // Draw connections with glow effect and track structural importance
       let linkCount = 0
       ctx.lineWidth = 1
@@ -910,11 +1078,11 @@ function CanvasPlaygroundInner() {
 
       for (let i = 0; i < nodes.length; i++) {
         const a = nodes[i]
-        if (a.kind === "trail") continue
+        if (a.kind === "trail" || a.kind === "constellation") continue
 
         for (let j = i + 1; j < nodes.length; j++) {
           const b = nodes[j]
-          if (b.kind === "trail") continue
+          if (b.kind === "trail" || b.kind === "constellation") continue
 
           const dx = a.x - b.x
           const dy = a.y - b.y
@@ -1027,6 +1195,9 @@ function CanvasPlaygroundInner() {
         ctx.fill()
       }
 
+      // Restore canvas state after 3D transform
+      ctx.restore()
+
       frameRef.current = requestAnimationFrame(step)
     }
 
@@ -1043,11 +1214,12 @@ function CanvasPlaygroundInner() {
       canvas.removeEventListener("mousemove", onPointerMove)
       canvas.removeEventListener("mouseup", onPointerUp)
       canvas.removeEventListener("mouseleave", onPointerUp)
+      canvas.removeEventListener("contextmenu", onContextMenu)
       canvas.removeEventListener("touchstart", onPointerDown)
       canvas.removeEventListener("touchmove", onPointerMove)
       canvas.removeEventListener("touchend", onPointerUp)
     }
-  }, [makeNode, spawnCluster, themeColor, mode, sealPulse, burst, setTheme])
+  }, [makeNode, spawnCluster, spawnConstellation, themeColor, mode, sealPulse, burst, setTheme])
 
   return (
     <section className="panel relative" ref={containerRef}>
@@ -1080,6 +1252,9 @@ function CanvasPlaygroundInner() {
               )
             })}
           </div>
+          <button onClick={handleSpawnConstellation} className="btn text-[11px] px-3 py-2">
+            {CONSTELLATIONS[currentConstellation].name} ✦
+          </button>
           <button onClick={toggleMode} className="btn alt text-[11px] px-3 py-2">
             Mode: {mode === "calm" ? "Calm" : "Live"}
           </button>
