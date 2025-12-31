@@ -128,6 +128,15 @@
         --space-tight: 6px; /* Between related elements */
         --space-normal: 10px; /* Standard spacing */
         --space-loose: 20px; /* Between sections */
+        --micro-tight: 7px; /* Slightly tighter than 8px */
+        --micro-normal: 11px; /* Between 10px and 12px */
+        --micro-loose: 19px; /* Slightly looser than 18px */
+
+        /* Golden Ratio for Natural Proportions */
+        --golden: 1.618;
+        --golden-a: var(--space-4); /* 16px */
+        --golden-b: calc(var(--golden-a) * var(--golden)); /* ~26px */
+        --golden-c: calc(var(--golden-b) * var(--golden)); /* ~42px */
 
         /* Legacy aliases for compatibility */
         --space-xs: var(--space-1);
@@ -359,7 +368,11 @@
         backdrop-filter: blur(14px);
         -webkit-backdrop-filter: blur(14px);
         border-radius: var(--radius-lg);
-        padding: clamp(var(--space-5), 2.4vw + 0.5rem, var(--space-6));
+        /* Asymmetric padding: more right space creates forward momentum */
+        padding: clamp(var(--space-5), 2.4vw + 0.5rem, var(--golden-b))
+          clamp(var(--golden-b), 3vw + 0.75rem, var(--golden-c))
+          clamp(var(--space-5), 2.4vw + 0.5rem, var(--golden-b))
+          clamp(var(--space-4), 2vw + 0.5rem, var(--space-5));
         box-shadow: var(--shadow);
         overflow: hidden;
         position: relative;
@@ -367,7 +380,8 @@
 
       .hero h2 {
         font-size: clamp(32px, 4.8vw, 58px);
-        margin: var(--space-2) 0 var(--space-3) 0;
+        /* Asymmetric margins: more top space = importance and hierarchy */
+        margin: var(--space-3) 0 var(--space-4) 0;
         line-height: 1.1;
         letter-spacing: -0.02em;
         font-weight: 600;
@@ -378,7 +392,8 @@
       }
 
       .hero p {
-        margin: 0;
+        /* Asymmetric margin: more bottom space for separation */
+        margin: 0 0 var(--space-5) 0;
         color: var(--text-body);
         max-width: 62ch;
         font-size: clamp(15px, 1.4vw, 18px);
@@ -440,7 +455,8 @@
       .grid {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: clamp(var(--space-4), 2.5vw, var(--space-5));
+        /* Golden ratio gap for natural proportions */
+        gap: clamp(var(--space-4), 2.5vw, var(--golden-b));
         margin-top: var(--space-5);
       }
 
@@ -448,9 +464,10 @@
         border: 1px solid rgba(255, 255, 255, 0.1);
         background: rgba(0, 0, 0, 0.18);
         border-radius: var(--radius-lg);
-        padding: var(--space-4);
-        transition: transform 0.18s ease, border-color 0.18s ease,
-          background 0.18s ease;
+        /* Asymmetric padding: slightly more vertical for breathing room */
+        padding: var(--space-4) var(--space-3);
+        transition: transform var(--transition-base),
+          border-color var(--transition-base), background var(--transition-base);
         cursor: pointer;
       }
       .card:hover,
@@ -483,7 +500,8 @@
       }
 
       .side h3 {
-        margin: 0 0 var(--space-2) 0;
+        /* Asymmetric margin: more bottom space for clear separation */
+        margin: 0 0 var(--space-3) 0;
         font-size: 14px;
         letter-spacing: 0.18em;
         text-transform: uppercase;
@@ -494,7 +512,8 @@
       }
 
       .side p {
-        margin: 0 0 var(--space-4) 0;
+        /* Vertical rhythm: consistent bottom spacing */
+        margin: 0 0 var(--space-5) 0;
         color: var(--text-body);
         font-size: 13px;
         line-height: 1.6;
@@ -528,11 +547,13 @@
       }
 
       .item {
-        padding: var(--space-4);
+        /* Asymmetric padding: more vertical for touch targets */
+        padding: var(--space-4) var(--space-3);
         border-radius: var(--radius-lg);
         border: 1px solid rgba(255, 255, 255, 0.1);
         background: rgba(0, 0, 0, 0.16);
-        transition: transform 0.18s ease, border-color 0.18s ease;
+        transition: transform var(--transition-base),
+          border-color var(--transition-base);
         cursor: pointer;
       }
       .item:hover,
@@ -616,7 +637,7 @@
         background: rgba(10, 18, 45, 0.35);
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        border-radius: 14px;
+        border-radius: var(--radius-lg);
         padding: 10px 12px;
         box-shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
         width: min(320px, 76vw);
@@ -626,7 +647,7 @@
         letter-spacing: 0.18em;
         text-transform: uppercase;
         color: rgba(234, 240, 255, 0.9);
-        margin: 0 0 8px 0;
+        margin: 0 0 var(--space-2) 0;
       }
       .hud .meta {
         display: flex;
@@ -657,7 +678,7 @@
         top: 10px;
         background: #0a122d;
         color: #eaf0ff;
-        padding: 10px 14px;
+        padding: var(--space-3) var(--space-4);
         border-radius: 10px;
         border: 1px solid rgba(255, 255, 255, 0.18);
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
@@ -676,7 +697,7 @@
         background: rgba(0, 0, 0, 0.55);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
-        padding: clamp(16px, 3vw, 36px);
+        padding: clamp(var(--space-5), 3vw, var(--space-6));
       }
 
       @media (max-width: 900px) {
@@ -974,7 +995,7 @@
           max-width: 980px;
           margin: 6vh auto 0 auto;
           border: 1px solid rgba(255, 255, 255, 0.14);
-          border-radius: 18px;
+          border-radius: var(--radius-lg);
           background: rgba(10, 18, 45, 0.65);
           box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
           overflow: hidden;
@@ -986,7 +1007,7 @@
             align-items: center;
             justify-content: space-between;
             gap: var(--space-3);
-            padding: 14px 16px;
+            padding: var(--space-4) var(--space-5);
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
           "
         >
@@ -1012,7 +1033,7 @@
         </div>
         <div
           style="
-            padding: 16px;
+            padding: var(--space-5);
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: var(--space-3);
@@ -1048,7 +1069,7 @@
         </div>
         <div
           style="
-            padding: 0 16px 16px 16px;
+            padding: 0 var(--space-5) var(--space-5) var(--space-5);
             display: flex;
             gap: var(--space-3);
             flex-wrap: wrap;
