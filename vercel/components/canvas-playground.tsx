@@ -96,7 +96,7 @@ const THEME_COLORS: Record<string, [number, number, number]> = {
 }
 
 // Performance constants
-const MAX_NODES = 300 // Cap nodes for performance
+const MAX_NODES = 500 // Cap nodes for performance
 
 function CanvasPlaygroundInner() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -288,16 +288,19 @@ function CanvasPlaygroundInner() {
         // Set transform for high-DPI
         ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
         
-        // Update dimensions
-        dimensionsRef.current = { W, H, DPR }
-        
-        // Clamp existing nodes to new bounds if canvas shrunk
-        if (nodesRef.current.length > 0) {
+        // Clamp existing nodes to new bounds if canvas shrunk (before updating dimensionsRef)
+        const oldW = dimensionsRef.current.W
+        const oldH = dimensionsRef.current.H
+        if (nodesRef.current.length > 0 && (W < oldW || H < oldH)) {
+          // Performance optimization: Only clamp if canvas actually got smaller
           for (const node of nodesRef.current) {
-            node.x = Math.max(0, Math.min(node.x, W))
-            node.y = Math.max(0, Math.min(node.y, H))
+            if (W < oldW) node.x = Math.max(0, Math.min(node.x, W))
+            if (H < oldH) node.y = Math.max(0, Math.min(node.y, H))
           }
         }
+
+        // Update dimensions
+        dimensionsRef.current = { W, H, DPR }
         
         // Seed initial constellation only if empty
         if (nodesRef.current.length === 0) {
@@ -683,6 +686,9 @@ function CanvasPlaygroundInner() {
         waveTimeRef.current += dt * 60 * (1 + currentPulse * 0.5) // Faster wave animation during pulse
       }
 
+      // Calculate time once for all vortex modulations (performance optimization)
+      const currentTime = performance.now() * 0.001
+
       // Clean up dyads where clusters are too far apart or no longer exist
       // Also dissolve dyads when pulse ends (below threshold)
       if (currentPulse < 0.1) {
@@ -776,9 +782,8 @@ function CanvasPlaygroundInner() {
             let theta = clusterRotationsRef.current.get(n.clusterId) || 0
 
             // Delta lambda: rotation speed, modulated by time and radial distance for vortex effect
-            const time = performance.now() * 0.001 // Time in seconds
             const radialDist = Math.sqrt(n.baseX * n.baseX + n.baseY * n.baseY)
-            const vortexModulation = 1 + Math.sin(time * 2 + radialDist * 0.1) * 0.3 // Vortex effect
+            const vortexModulation = 1 + Math.sin(currentTime * 2 + radialDist * 0.1) * 0.3 // Vortex effect
             const deltaLambda = deltaLambdaRef.current * vortexModulation
 
             // Update rotation angle
@@ -898,14 +903,16 @@ function CanvasPlaygroundInner() {
         // Node merging - when nodes get very close, they can merge
         // Skip merging for clustered nodes (they're already grouped)
         if (n.kind === "spark" && n.age > 60 && n.clusterId === undefined) {
+          const mergeDistSq = 15 * 15 // Pre-calculate squared distance to avoid sqrt
           for (let j = 0; j < nodes.length; j++) {
             if (i === j) continue
             const other = nodes[j]
             if (other.kind !== "node" || other.clusterId !== undefined) continue
             const dx = n.x - other.x
             const dy = n.y - other.y
-            const dist = Math.sqrt(dx * dx + dy * dy)
-            if (dist < 15) {
+            const distSq = dx * dx + dy * dy
+            // Performance optimization: Use squared distance to avoid sqrt until necessary
+            if (distSq < mergeDistSq) {
               // Merge: transfer momentum and grow the node slightly
               // Merged nodes become more structural (they've formed connections)
               other.vx = (other.vx + n.vx * 0.3) * 0.8
@@ -1164,13 +1171,23 @@ function CanvasPlaygroundInner() {
 
         // Glow with structural fade and pulse enhancement
         const glowRadius = radius * (3 + currentPulse * 1.5)
-        const gradient = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, glowRadius)
-        gradient.addColorStop(0, `rgba(${r + n.hue}, ${g}, ${b}, ${alpha * (0.4 + currentPulse * 0.3)})`)
-        gradient.addColorStop(1, `rgba(${r + n.hue}, ${g}, ${b}, 0)`)
-        ctx.fillStyle = gradient
-        ctx.beginPath()
-        ctx.arc(n.x, n.y, glowRadius, 0, Math.PI * 2)
-        ctx.fill()
+
+        // Performance optimization: Only use expensive gradients for larger nodes or during pulse
+        if (glowRadius > 8 || currentPulse > 0.3) {
+          const gradient = ctx.createRadialGradient(n.x, n.y, 0, n.x, n.y, glowRadius)
+          gradient.addColorStop(0, `rgba(${r + n.hue}, ${g}, ${b}, ${alpha * (0.4 + currentPulse * 0.3)})`)
+          gradient.addColorStop(1, `rgba(${r + n.hue}, ${g}, ${b}, 0)`)
+          ctx.fillStyle = gradient
+          ctx.beginPath()
+          ctx.arc(n.x, n.y, glowRadius, 0, Math.PI * 2)
+          ctx.fill()
+        } else {
+          // Use simpler solid color glow for small nodes
+          ctx.fillStyle = `rgba(${r + n.hue}, ${g}, ${b}, ${alpha * 0.2})`
+          ctx.beginPath()
+          ctx.arc(n.x, n.y, glowRadius, 0, Math.PI * 2)
+          ctx.fill()
+        }
 
         // Core with structural fade and pulse enhancement
         const coreRadius = radius * (1 + currentPulse * 0.2)
