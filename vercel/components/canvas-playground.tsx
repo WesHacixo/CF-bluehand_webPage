@@ -96,7 +96,7 @@ const THEME_COLORS: Record<string, [number, number, number]> = {
 }
 
 // Performance constants
-const MAX_NODES = 5000 // Significantly increased for rich, complex visualizations
+const MAX_NODES = 300 // Cap nodes for performance
 
 function CanvasPlaygroundInner() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
