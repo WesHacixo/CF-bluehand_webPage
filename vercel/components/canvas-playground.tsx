@@ -114,6 +114,12 @@ function CanvasPlaygroundInner() {
   const rotationStartRef = useRef({ x: 0, y: 0, active: false })
   const lastSpeedRef = useRef(0)
 
+  // Refs for values used in animation loop to avoid effect re-runs
+  const rotation3DRef = useRef(rotation3D)
+  const researchModeRef = useRef(researchMode)
+  const clickCountRef = useRef(clickCount)
+  const currentConstellationRef = useRef(currentConstellation)
+
   // Touch gesture state
   const touchStateRef = useRef({
     initialDistance: 0,
@@ -123,6 +129,14 @@ function CanvasPlaygroundInner() {
 
   const { mode, theme, toggleMode, pulseSeal, spawnBurst } = useApp()
   const themeColor = THEME_COLORS[theme] || THEME_COLORS.neutral
+
+  // Sync refs with state to avoid effect re-runs
+  useEffect(() => {
+    rotation3DRef.current = rotation3D
+    researchModeRef.current = researchMode
+    clickCountRef.current = clickCount
+    currentConstellationRef.current = currentConstellation
+  }, [rotation3D, researchMode, clickCount, currentConstellation])
 
   const makeNode = useCallback(
     (x: number, y: number, vx = 0, vy = 0, kind: "node" | "spark" | "trail" = "node"): PlaygroundNode => {
@@ -272,21 +286,30 @@ function CanvasPlaygroundInner() {
       pointerRef.current.trail = []
 
       // Increment click count
-      setClickCount((prev) => prev + 1)
+      setClickCount((prev) => {
+        const newCount = prev + 1
+        clickCountRef.current = newCount
 
-      // Every 5 clicks, spawn a constellation
-      if ((clickCount + 1) % 5 === 0) {
-        spawnConstellation(currentConstellation, coords.x, coords.y, 120)
-        setCurrentConstellation((prev) => (prev + 1) % CONSTELLATIONS.length)
+        // Every 5 clicks, spawn a constellation
+        if (newCount % 5 === 0) {
+          spawnConstellation(currentConstellationRef.current, coords.x, coords.y, 120)
+          setCurrentConstellation((prevConst) => {
+            const newConst = (prevConst + 1) % CONSTELLATIONS.length
+            currentConstellationRef.current = newConst
+            return newConst
+          })
 
-        // Research mode: discover constellation patterns
-        if (researchMode) {
-          setDiscoveredConcepts(prev => new Set(prev).add("constellation"))
+          // Research mode: discover constellation patterns
+          if (researchModeRef.current) {
+            setDiscoveredConcepts(prev => new Set(prev).add("constellation"))
+          }
+        } else {
+          // Spawn initial burst on click
+          spawnCluster(coords.x, coords.y, 8)
         }
-      } else {
-        // Spawn initial burst on click
-        spawnCluster(coords.x, coords.y, 8)
-      }
+
+        return newCount
+      })
     }
 
     const onContextMenu = (e: MouseEvent) => {
@@ -365,7 +388,7 @@ function CanvasPlaygroundInner() {
               n.vy += normalizedDy * force * (speed * 0.05)
 
               // Research mode: discover repulsion
-              if (researchMode) {
+              if (researchModeRef.current) {
                 setDiscoveredConcepts(prev => new Set(prev).add("repulsion"))
               }
             } else if (speed < 8) {
@@ -375,7 +398,7 @@ function CanvasPlaygroundInner() {
               n.vy -= normalizedDy * force
 
               // Research mode: discover attraction
-              if (researchMode) {
+              if (researchModeRef.current) {
                 setDiscoveredConcepts(prev => new Set(prev).add("attraction"))
               }
             } else {
@@ -385,7 +408,7 @@ function CanvasPlaygroundInner() {
               n.vy -= normalizedDx * force * Math.sign(dx)
 
               // Research mode: discover orbital motion
-              if (researchMode) {
+              if (researchModeRef.current) {
                 setDiscoveredConcepts(prev => new Set(prev).add("orbital"))
               }
             }
@@ -522,10 +545,10 @@ function CanvasPlaygroundInner() {
 
       // Use CSS-like 3D transforms (rotateX and rotateY)
       const perspective = 1000
-      const scaleX = Math.cos(rotation3D.y)
-      const scaleY = Math.cos(rotation3D.x)
-      const skewX = Math.sin(rotation3D.y) * 0.5
-      const skewY = Math.sin(rotation3D.x) * 0.5
+      const scaleX = Math.cos(rotation3DRef.current.y)
+      const scaleY = Math.cos(rotation3DRef.current.x)
+      const skewX = Math.sin(rotation3DRef.current.y) * 0.5
+      const skewY = Math.sin(rotation3DRef.current.x) * 0.5
 
       ctx.transform(scaleX, skewY, skewX, scaleY, 0, 0)
       ctx.translate(-W / 2, -H / 2)
@@ -672,7 +695,7 @@ function CanvasPlaygroundInner() {
 
           if (dist < maxDist) {
             const alpha = (1 - dist / maxDist) * (a.kind === "spark" || b.kind === "spark" ? 0.15 : 0.25)
-            ctx.strokeStyle = `rgba(${r + a.hue}, ${g}, ${b.hue > 0 ? b : b}, ${alpha})`
+            ctx.strokeStyle = `rgba(${r + a.hue}, ${g}, ${b + b.hue}, ${alpha})`
             ctx.beginPath()
             ctx.moveTo(a.x, a.y)
             ctx.lineTo(b.x, b.y)
@@ -749,7 +772,7 @@ function CanvasPlaygroundInner() {
       canvas.removeEventListener("touchend", onTouchEnd)
       canvas.removeEventListener("touchcancel", onTouchEnd)
     }
-  }, [makeNode, spawnCluster, spawnConstellation, themeColor, mode, clickCount, currentConstellation, rotation3D])
+  }, [makeNode, spawnCluster, spawnConstellation, themeColor, mode])
 
   return (
     <section className="panel relative" ref={containerRef} id="preliminary-results">
