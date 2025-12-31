@@ -2,19 +2,14 @@
 
 import { memo, useCallback } from "react"
 import { useApp } from "./app-provider"
-import type { CanvasPlaygroundHandle } from "./canvas-playground"
 
-interface AuditSectionProps {
-  canvasPlaygroundRef: React.RefObject<CanvasPlaygroundHandle>
-}
-
-function AuditSectionInner({ canvasPlaygroundRef }: AuditSectionProps) {
-  const { openModal, openContactForm } = useApp()
+function AuditSectionInner() {
+  const { openModal, openContactForm, spawnBurst } = useApp()
 
   const handleDropConstellation = useCallback(() => {
-    // Drop a new manipulable constellation at center
-    canvasPlaygroundRef.current?.dropConstellation()
-  }, [canvasPlaygroundRef])
+    // Trigger burst effect (which spawns clusters)
+    spawnBurst()
+  }, [spawnBurst])
 
   const handleOpenModal = useCallback(() => openModal(), [openModal])
   const handleOpenContactForm = useCallback(() => openContactForm(), [openContactForm])
