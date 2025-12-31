@@ -752,7 +752,7 @@ function CanvasPlaygroundInner() {
   }, [makeNode, spawnCluster, spawnConstellation, themeColor, mode, clickCount, currentConstellation, rotation3D])
 
   return (
-    <section className="panel relative" ref={containerRef}>
+    <section className="panel relative" ref={containerRef} id="preliminary-results">
       <div className="fade" />
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
         <div>
