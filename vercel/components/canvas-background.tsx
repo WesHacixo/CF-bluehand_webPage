@@ -424,12 +424,13 @@ function CanvasBackgroundInner() {
         }
       }
 
-      // Draw mesh connections
+      // Draw mesh connections with spatial optimization
       ctx.strokeStyle = `rgba(${r}, ${g + 30}, ${b + 20}, ${0.15 + pulse * 0.1})`
       ctx.lineWidth = 1
       for (let i = 0; i < points.length; i++) {
         const p1 = points[i]
-        for (let j = i + 1; j < points.length; j++) {
+        // Only check nearby points to reduce complexity
+        for (let j = i + 1; j < Math.min(i + 20, points.length); j++) {
           const p2 = points[j]
           const dist = Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2)
           if (dist < gridSize * 1.5) {
