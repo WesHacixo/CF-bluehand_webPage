@@ -1,0 +1,80 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main, vercel-dev, cloudflare-dev, Vercel-pr0, Cloudflare-pr0]
+  pull_request:
+    branches: [main, vercel-dev, cloudflare-dev, Vercel-pr0, Cloudflare-pr0]
+
+jobs:
+  semgrep-scan:
+    name: Semgrep Security Scan
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/typescript
+            p/react
+            .semgrep-rules.yml
+      
+      - name: Run Semgrep scan
+        continue-on-error: true
+        run: |
+          semgrep --config=.semgrep-rules.yml \
+            --json \
+            --output=semgrep-results.json \
+            vercel/ cloudflare/ || true
+      
+      - name: Parse and report results
+        if: always()
+        run: |
+          if [ -f semgrep-results.json ]; then
+            # Count errors and warnings
+            ERRORS=$(jq '[.results[] | select(.extra.severity == "ERROR")] | length' semgrep-results.json || echo "0")
+            WARNINGS=$(jq '[.results[] | select(.extra.severity == "WARNING")] | length' semgrep-results.json || echo "0")
+            
+            echo "## Semgrep Scan Results" >> $GITHUB_STEP_SUMMARY
+            echo "- **Errors**: $ERRORS" >> $GITHUB_STEP_SUMMARY
+            echo "- **Warnings**: $WARNINGS" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            if [ "$ERRORS" -gt 0 ]; then
+              echo "### ❌ Errors Found" >> $GITHUB_STEP_SUMMARY
+              jq -r '.results[] | select(.extra.severity == "ERROR") | "- `\(.path):\(.start.line)` - \(.message)"' semgrep-results.json >> $GITHUB_STEP_SUMMARY || true
+            fi
+            
+            if [ "$WARNINGS" -gt 0 ]; then
+              echo "### ⚠️ Warnings Found" >> $GITHUB_STEP_SUMMARY
+              jq -r '.results[] | select(.extra.severity == "WARNING") | "- `\(.path):\(.start.line)` - \(.message)"' semgrep-results.json >> $GITHUB_STEP_SUMMARY || true
+            fi
+            
+            # Fail on errors
+            if [ "$ERRORS" -gt 0 ]; then
+              echo "❌ Security scan found $ERRORS error(s). Please fix before merging."
+              exit 1
+            fi
+            
+            if [ "$WARNINGS" -gt 0 ]; then
+              echo "⚠️ Security scan found $WARNINGS warning(s). Consider fixing."
+            else
+              echo "✅ Security scan passed with no issues."
+            fi
+          else
+            echo "⚠️ Semgrep results file not found. Scan may have failed."
+          fi
+      
+      - name: Upload results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-results
+          path: semgrep-results.json
+          retention-days: 7
+

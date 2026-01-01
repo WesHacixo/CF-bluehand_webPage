@@ -1,0 +1,71 @@
+rules:
+  - id: no-white-text
+    pattern-regex: "(rgba\\(255,\\s*255,\\s*255[^)]*\\)|#fff\\b|#ffffff\\b|rgb\\(255,\\s*255,\\s*255\\))"
+    message: "White text detected. Use eye-friendly colors: rgba(212,223,245,...) or rgba(139,155,196,...)"
+    languages: [css, javascript, typescript, tsx]
+    severity: ERROR
+    metadata:
+      category: "code-quality"
+      cwe: "CWE-20"
+
+  - id: no-console-log
+    pattern: console.log(...)
+    message: "console.log found. Remove debug code before committing."
+    languages: [javascript, typescript, tsx]
+    severity: WARNING
+    metadata:
+      category: "code-quality"
+
+  - id: canvas-node-limit
+    pattern-regex: "MAX_NODES\\s*=\\s*(300|2[5-9][0-9]|[3-9][0-9]{2})"
+    message: "Canvas node count too high. Maximum should be 60-80 for performance."
+    languages: [javascript, typescript, tsx]
+    severity: WARNING
+    metadata:
+      category: "performance"
+
+  - id: missing-error-handling
+    pattern: |
+      async function $FUNC(...) {
+        ...
+        await $CALL(...)
+        ...
+      }
+    message: "Async function missing error handling. Add try-catch blocks."
+    languages: [typescript, tsx]
+    severity: WARNING
+    metadata:
+      category: "reliability"
+
+  - id: missing-aria-labels
+    pattern-regex: "<button(?![^>]*aria-label)(?![^>]*aria-labelledby)[^>]*>"
+    message: "Button missing ARIA label. Add aria-label or aria-labelledby for accessibility."
+    languages: [tsx, jsx]
+    severity: WARNING
+    metadata:
+      category: "accessibility"
+
+  - id: hardcoded-api-key
+    pattern-regex: "(api[_-]?key|API[_-]?KEY|apikey|APIKEY)\\s*[:=]\\s*['\"][^'\"]{10,}"
+    message: "Hardcoded API key detected. Use environment variables instead."
+    languages: [javascript, typescript, tsx, python]
+    severity: ERROR
+    metadata:
+      category: "security"
+      cwe: "CWE-798"
+
+  - id: missing-security-headers
+    pattern-regex: "(Content-Security-Policy|X-Frame-Options|X-Content-Type-Options)"
+    message: "Security headers should be configured in _headers file for Cloudflare or middleware for Vercel."
+    languages: [html]
+    severity: INFO
+    metadata:
+      category: "security"
+
+  - id: direct-production-commit
+    pattern-regex: "git\\s+commit.*(Vercel-pr0|Cloudflare-pr0|main)"
+    message: "Direct commits to production branches are not allowed. Use merge from dev branches."
+    languages: [bash, shell]
+    severity: ERROR
+    metadata:
+      category: "workflow"
