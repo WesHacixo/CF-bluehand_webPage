@@ -8,22 +8,22 @@ const services = [
   {
     key: "sovereign" as const,
     title: "Sovereign AI",
-    description: "LLMs + embeddings running on your machines—Mac minis to multi-node clusters.",
+    description: "Local-first models on your infrastructure.",
   },
   {
     key: "pipeline" as const,
     title: "Secure Pipelines",
-    description: "Encrypted, auditable flows from ingestion to inference—no training leakage.",
+    description: "Encrypted flows with zero leakage.",
   },
   {
     key: "mesh" as const,
     title: "Agent Mesh",
-    description: "Orchestrated agents with boundary + governance, not uncontrolled automation.",
+    description: "Governed automation with boundaries.",
   },
   {
     key: "interface" as const,
     title: "Human Interface",
-    description: "Chat/canvas/dashboards that keep complex intelligence legible and usable.",
+    description: "Intelligence that stays legible.",
   },
 ]
 

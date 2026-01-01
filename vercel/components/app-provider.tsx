@@ -5,7 +5,7 @@ import type { ServiceKey } from "./service-detail-modal"
 
 type Mode = "calm" | "live"
 type Theme = "neutral" | "sovereign" | "pipeline" | "mesh" | "interface" | "research" | "startup" | "ip" | "privacy"
-type BackgroundTheme = "neural" | "wireframe" | "circuit"
+type BackgroundTheme = "neural" | "wireframe" | "circuit" | "cosmic" | "geometric" | "mesh" | "neon" | "circuit-hand"
 
 interface AppState {
   mode: Mode
@@ -78,7 +78,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const cycleBackgroundTheme = useCallback(() => {
     setState((prev) => {
-      const themes: BackgroundTheme[] = ["neural", "wireframe", "circuit"]
+      const themes: BackgroundTheme[] = ["neural", "wireframe", "circuit", "cosmic", "geometric", "mesh", "neon", "circuit-hand"]
       const currentIndex = themes.indexOf(prev.backgroundTheme)
       const nextIndex = (currentIndex + 1) % themes.length
       return { ...prev, backgroundTheme: themes[nextIndex], sealPulse: Math.min(1, prev.sealPulse + 0.6) }

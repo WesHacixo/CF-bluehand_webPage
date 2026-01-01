@@ -44,6 +44,11 @@ function HeroShowcaseInner() {
           {backgroundTheme === "neural" && "Neural"}
           {backgroundTheme === "wireframe" && "Wireframe"}
           {backgroundTheme === "circuit" && "Circuit"}
+          {backgroundTheme === "cosmic" && "Cosmic"}
+          {backgroundTheme === "geometric" && "Geometric"}
+          {backgroundTheme === "mesh" && "Mesh"}
+          {backgroundTheme === "neon" && "Neon"}
+          {backgroundTheme === "circuit-hand" && "Circuit Hand"}
         </div>
       </div>
 
