@@ -83,6 +83,10 @@ function HeroShowcaseInner() {
               filter: "drop-shadow(0 0 60px rgba(127,180,255,0.5)) drop-shadow(0 0 120px rgba(127,180,255,0.25))",
             }}
             priority
+            onError={(e) => {
+              console.warn('Hamsa image failed to load:', e);
+              // Could set a fallback state here
+            }}
           />
         </div>
       )}
