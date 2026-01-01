@@ -2,11 +2,10 @@
 
 import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react"
 import type { ServiceKey } from "./service-detail-modal"
+import { BACKGROUND_THEMES, type BackgroundTheme } from "../lib/themes"
 
 type Mode = "calm" | "live"
 type Theme = "neutral" | "sovereign" | "pipeline" | "mesh" | "interface" | "research" | "startup" | "ip" | "privacy"
-type BackgroundTheme = "neural" | "wireframe" | "circuit"
-
 interface AppState {
   mode: Mode
   theme: Theme
@@ -78,10 +77,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const cycleBackgroundTheme = useCallback(() => {
     setState((prev) => {
-      const themes: BackgroundTheme[] = ["neural", "wireframe", "circuit"]
-      const currentIndex = themes.indexOf(prev.backgroundTheme)
-      const nextIndex = (currentIndex + 1) % themes.length
-      return { ...prev, backgroundTheme: themes[nextIndex], sealPulse: Math.min(1, prev.sealPulse + 0.6) }
+      const currentIndex = BACKGROUND_THEMES.indexOf(prev.backgroundTheme)
+      const nextIndex = (currentIndex + 1) % BACKGROUND_THEMES.length
+      return {
+        ...prev,
+        backgroundTheme: BACKGROUND_THEMES[nextIndex],
+        sealPulse: Math.min(1, prev.sealPulse + 0.6),
+      }
     })
   }, [])
 

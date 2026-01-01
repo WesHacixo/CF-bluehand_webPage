@@ -3,6 +3,7 @@
 import { memo, useEffect, useState, useRef } from "react"
 import Image from "next/image"
 import { useApp } from "./app-provider"
+import { getBackgroundThemeLabel } from "../lib/themes"
 
 function HeroShowcaseInner() {
   const { backgroundTheme, mode, cycleBackgroundTheme, toggleMode } = useApp()
@@ -41,9 +42,7 @@ function HeroShowcaseInner() {
       {/* Theme indicator - top right */}
       <div className="absolute top-4 right-4 z-20">
         <div className="text-[10px] uppercase tracking-[0.2em] text-[rgba(234,240,255,0.5)] bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10">
-          {backgroundTheme === "neural" && "Neural"}
-          {backgroundTheme === "wireframe" && "Wireframe"}
-          {backgroundTheme === "circuit" && "Circuit"}
+          {getBackgroundThemeLabel(backgroundTheme)}
         </div>
       </div>
 

@@ -2,6 +2,7 @@
 
 import { memo, useRef, useEffect, useCallback } from "react"
 import { useApp } from "./app-provider"
+import { getBackgroundThemeLabel } from "../lib/themes"
 
 interface PlaygroundNode {
   x: number
@@ -516,7 +517,7 @@ function CanvasPlaygroundInner() {
             className="btn alt text-[11px] px-3 py-2"
             title="Cycle through visual themes (Neural/Wireframe/Circuit)"
           >
-            Theme: {backgroundTheme === "neural" ? "Neural" : backgroundTheme === "wireframe" ? "Wireframe" : "Circuit"}
+            Theme: {getBackgroundThemeLabel(backgroundTheme)}
           </button>
           <button onClick={toggleMode} className="btn alt text-[11px] px-3 py-2">
             Mode: {mode === "calm" ? "Calm" : "Live"}
