@@ -44,7 +44,7 @@ function CanvasPlaygroundInner() {
   const dimensionsRef = useRef({ W: 0, H: 0, DPR: 1 })
   const frameRef = useRef<number>(0)
   const lastTimeRef = useRef(performance.now())
-  const resizeTimeoutRef = useRef<number | null>(null)
+  const resizeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const { mode, theme, toggleMode, pulseSeal, spawnBurst, cycleBackgroundTheme, backgroundTheme } = useApp()
 
@@ -102,7 +102,7 @@ function CanvasPlaygroundInner() {
       }
 
       // Debounce resize to prevent excessive calls
-      resizeTimeoutRef.current = window.setTimeout(() => {
+      resizeTimeoutRef.current = setTimeout(() => {
         // Get canvas element's actual dimensions (not container)
         const canvasRect = canvas.getBoundingClientRect()
         const DPR = Math.min(window.devicePixelRatio || 1, 2)
@@ -515,7 +515,7 @@ function CanvasPlaygroundInner() {
           <button
             onClick={cycleBackgroundTheme}
             className="btn alt text-[11px] px-3 py-2"
-            title="Cycle through visual themes (Neural/Wireframe/Circuit)"
+            title="Cycle through visual themes"
           >
             Theme: {getBackgroundThemeLabel(backgroundTheme)}
           </button>

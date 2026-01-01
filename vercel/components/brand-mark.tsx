@@ -16,6 +16,10 @@ function BrandMarkInner() {
           filter: "drop-shadow(0 0 12px rgba(127,180,255,0.4)) drop-shadow(0 0 24px rgba(127,180,255,0.2))",
         }}
         priority
+        onError={(e) => {
+          console.warn('Logo image failed to load:', e);
+          // Fallback to CSS-based logo if image fails
+        }}
       />
     </div>
   )

@@ -285,6 +285,311 @@ function CanvasBackgroundInner() {
     [themeColor],
   )
 
+  const drawCosmicTheme = useCallback(
+    (ctx: CanvasRenderingContext2D, t: number, W: number, H: number, scroll: number, pulse: number) => {
+      const [r, g, b] = themeColor
+      const cx = W / 2
+      const cy = H / 2.5 + scroll * 80
+
+      // Triskelion spirals
+      for (let arm = 0; arm < 3; arm++) {
+        const armAngle = (arm * Math.PI * 2) / 3 + t * 0.0002
+        ctx.save()
+        ctx.translate(cx, cy)
+        ctx.rotate(armAngle)
+
+        ctx.strokeStyle = `rgba(${255}, ${93 + arm * 30}, ${125 + arm * 40}, ${0.3 + pulse * 0.2})`
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        for (let i = 0; i < 60; i++) {
+          const angle = i * 0.1
+          const radius = i * 3 + pulse * 20
+          const x = Math.cos(angle) * radius
+          const y = Math.sin(angle) * radius
+          if (i === 0) ctx.moveTo(x, y)
+          else ctx.lineTo(x, y)
+        }
+        ctx.stroke()
+        ctx.restore()
+      }
+
+      // Central triskelion symbol
+      ctx.save()
+      ctx.translate(cx, cy)
+      ctx.rotate(t * 0.0003)
+      for (let i = 0; i < 3; i++) {
+        const angle = (i * Math.PI * 2) / 3
+        const dist = 40 + pulse * 15
+        ctx.strokeStyle = `rgba(${r}, ${g + 40}, ${b}, ${0.6 + pulse * 0.3})`
+        ctx.lineWidth = 3
+        ctx.beginPath()
+        ctx.arc(Math.cos(angle) * dist, Math.sin(angle) * dist, 20, 0, Math.PI * 2)
+        ctx.stroke()
+      }
+      ctx.restore()
+
+      // Cosmic particles
+      for (let i = 0; i < 30; i++) {
+        const particleAngle = (i / 30) * Math.PI * 2 + t * 0.0005
+        const particleRadius = 150 + Math.sin(t * 0.001 + i) * 50
+        const px = cx + Math.cos(particleAngle) * particleRadius
+        const py = cy + Math.sin(particleAngle) * particleRadius
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${0.2 + pulse * 0.3})`
+        ctx.beginPath()
+        ctx.arc(px, py, 2, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    },
+    [themeColor],
+  )
+
+  const drawGeometricTheme = useCallback(
+    (ctx: CanvasRenderingContext2D, t: number, W: number, H: number, scroll: number, pulse: number) => {
+      const [r, g, b] = themeColor
+
+      // Floating polyhedrons
+      for (let i = 0; i < 8; i++) {
+        const x = (W / 9) * (i + 1) + Math.sin(t * 0.0003 + i) * 50
+        const y = H / 2.5 + Math.cos(t * 0.0002 + i) * 100 + scroll * 60
+        const size = 40 + Math.sin(t * 0.0004 + i) * 15
+        const rotation = t * 0.0005 + i
+
+        ctx.save()
+        ctx.translate(x, y)
+        ctx.rotate(rotation)
+
+        // Icosahedron wireframe
+        ctx.strokeStyle = `rgba(${r}, ${g + 20}, ${b + 30}, ${0.25 + pulse * 0.2})`
+        ctx.lineWidth = 1.5
+
+        for (let face = 0; face < 5; face++) {
+          const angle = (face * Math.PI * 2) / 5
+          ctx.beginPath()
+          ctx.moveTo(0, -size)
+          ctx.lineTo(Math.cos(angle) * size, Math.sin(angle) * size)
+          ctx.lineTo(Math.cos(angle + Math.PI * 0.4) * size, Math.sin(angle + Math.PI * 0.4) * size)
+          ctx.closePath()
+          ctx.stroke()
+        }
+        ctx.restore()
+      }
+
+      // Wireframe hand abstraction
+      const cx = W / 2
+      const cy = H / 2.3 + scroll * 80
+      ctx.save()
+      ctx.translate(cx, cy)
+      ctx.strokeStyle = `rgba(${r + 30}, ${g}, ${b + 40}, ${0.4 + pulse * 0.3})`
+      ctx.lineWidth = 2
+
+      // Palm
+      ctx.beginPath()
+      ctx.moveTo(-50, 0)
+      ctx.lineTo(-30, -60)
+      ctx.lineTo(30, -60)
+      ctx.lineTo(50, 0)
+      ctx.lineTo(30, 50)
+      ctx.lineTo(-30, 50)
+      ctx.closePath()
+      ctx.stroke()
+
+      // Fingers as geometric lines
+      for (let i = 0; i < 5; i++) {
+        const fx = -40 + i * 20
+        ctx.beginPath()
+        ctx.moveTo(fx, -60)
+        ctx.lineTo(fx, -100 - i * 8)
+        ctx.stroke()
+      }
+      ctx.restore()
+    },
+    [themeColor],
+  )
+
+  const drawMeshTheme = useCallback(
+    (ctx: CanvasRenderingContext2D, t: number, W: number, H: number, scroll: number, pulse: number) => {
+      const [r, g, b] = themeColor
+
+      // Dense mesh grid
+      const gridSize = 80
+      const cols = Math.ceil(W / gridSize) + 1
+      const rows = Math.ceil(H / gridSize) + 1
+
+      const points: {x: number, y: number}[] = []
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const x = col * gridSize + Math.sin(t * 0.0003 + row * 0.5) * 20
+          const y = row * gridSize + Math.cos(t * 0.0002 + col * 0.5) * 20 + scroll * 30
+          points.push({x, y})
+        }
+      }
+
+      // Draw mesh connections with spatial optimization
+      ctx.strokeStyle = `rgba(${r}, ${g + 30}, ${b + 20}, ${0.15 + pulse * 0.1})`
+      ctx.lineWidth = 1
+      for (let i = 0; i < points.length; i++) {
+        const p1 = points[i]
+        // Only check nearby points to reduce complexity
+        for (let j = i + 1; j < Math.min(i + 20, points.length); j++) {
+          const p2 = points[j]
+          const dist = Math.sqrt((p2.x - p1.x) ** 2 + (p2.y - p1.y) ** 2)
+          if (dist < gridSize * 1.5) {
+            ctx.beginPath()
+            ctx.moveTo(p1.x, p1.y)
+            ctx.lineTo(p2.x, p2.y)
+            ctx.stroke()
+          }
+        }
+      }
+
+      // Draw nodes
+      points.forEach((p) => {
+        ctx.fillStyle = `rgba(${r + 50}, ${g + 30}, ${b + 40}, ${0.4 + pulse * 0.3})`
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2)
+        ctx.fill()
+      })
+    },
+    [themeColor],
+  )
+
+  const drawNeonTheme = useCallback(
+    (ctx: CanvasRenderingContext2D, t: number, W: number, H: number, scroll: number, pulse: number) => {
+      // Neon flow with rainbow gradient effects
+      const centerX = W / 2
+      const centerY = H / 2.5 + scroll * 80
+
+      // Flowing neon streams
+      for (let stream = 0; stream < 6; stream++) {
+        const hue = (stream / 6) * 360 + t * 0.05
+        const streamAngle = (stream / 6) * Math.PI * 2
+
+        ctx.save()
+        ctx.translate(centerX, centerY)
+        ctx.rotate(streamAngle + t * 0.0003)
+
+        const gradient = ctx.createLinearGradient(0, 0, 0, 200)
+        const r = Math.sin(hue * Math.PI / 180) * 127 + 128
+        const g = Math.sin((hue + 120) * Math.PI / 180) * 127 + 128
+        const b = Math.sin((hue + 240) * Math.PI / 180) * 127 + 128
+
+        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${0.3 + pulse * 0.3})`)
+        gradient.addColorStop(0.5, `rgba(${b}, ${r}, ${g}, ${0.2 + pulse * 0.2})`)
+        gradient.addColorStop(1, `rgba(${g}, ${b}, ${r}, 0)`)
+
+        ctx.strokeStyle = gradient
+        ctx.lineWidth = 3 + pulse * 2
+        ctx.beginPath()
+        for (let i = 0; i < 200; i++) {
+          const y = i
+          const x = Math.sin(i * 0.05 + t * 0.005) * 50
+          if (i === 0) ctx.moveTo(x, y)
+          else ctx.lineTo(x, y)
+        }
+        ctx.stroke()
+        ctx.restore()
+      }
+
+      // Neon glow particles
+      for (let i = 0; i < 20; i++) {
+        const angle = (i / 20) * Math.PI * 2 + t * 0.001
+        const radius = 120 + Math.sin(t * 0.002 + i) * 40
+        const px = centerX + Math.cos(angle) * radius
+        const py = centerY + Math.sin(angle) * radius
+        const hue = (i / 20) * 360 + t * 0.1
+        const r = Math.sin(hue * Math.PI / 180) * 127 + 128
+        const g = Math.sin((hue + 120) * Math.PI / 180) * 127 + 128
+        const b = Math.sin((hue + 240) * Math.PI / 180) * 127 + 128
+
+        const particleGradient = ctx.createRadialGradient(px, py, 0, px, py, 15)
+        particleGradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${0.6 + pulse * 0.3})`)
+        particleGradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`)
+        ctx.fillStyle = particleGradient
+        ctx.beginPath()
+        ctx.arc(px, py, 15, 0, Math.PI * 2)
+        ctx.fill()
+      }
+    },
+    [themeColor],
+  )
+
+  const drawCircuitHandTheme = useCallback(
+    (ctx: CanvasRenderingContext2D, t: number, W: number, H: number, scroll: number, pulse: number) => {
+      const [r, g, b] = themeColor
+      const cx = W / 2
+      const cy = H / 2.3 + scroll * 80
+
+      ctx.save()
+      ctx.translate(cx, cy)
+
+      // Circuit-style hand outline
+      ctx.strokeStyle = `rgba(${r + 50}, ${g + 30}, ${b + 60}, ${0.5 + pulse * 0.3})`
+      ctx.lineWidth = 2
+      ctx.beginPath()
+      ctx.moveTo(0, 60) // Wrist
+      ctx.lineTo(-40, 30)
+      ctx.lineTo(-50, -10)
+      ctx.lineTo(-40, -50) // Pinky
+      ctx.lineTo(-20, -80) // Ring
+      ctx.lineTo(0, -90) // Middle
+      ctx.lineTo(20, -85) // Index
+      ctx.lineTo(40, -60) // Thumb
+      ctx.lineTo(50, -10)
+      ctx.lineTo(40, 30)
+      ctx.closePath()
+      ctx.stroke()
+
+      // Circuit traces on palm
+      const traces = [
+        [{x: -30, y: 20}, {x: -20, y: -10}, {x: -10, y: -30}],
+        [{x: -10, y: 20}, {x: 0, y: -15}, {x: 0, y: -40}],
+        [{x: 10, y: 20}, {x: 20, y: -10}, {x: 10, y: -35}],
+        [{x: 30, y: 20}, {x: 30, y: -5}, {x: 25, y: -25}],
+      ]
+
+      traces.forEach((trace, idx) => {
+        const progress = (t * 0.001 + idx * 0.3) % 1
+        ctx.strokeStyle = `rgba(${r}, ${g + 40}, ${b + 80}, 0.4)`
+        ctx.lineWidth = 1.5
+        ctx.beginPath()
+        ctx.moveTo(trace[0].x, trace[0].y)
+        trace.forEach(p => ctx.lineTo(p.x, p.y))
+        ctx.stroke()
+
+        // Flowing particle
+        const progressIdx = Math.floor(progress * (trace.length - 1))
+        if (progressIdx < trace.length - 1) {
+          const p1 = trace[progressIdx]
+          const p2 = trace[progressIdx + 1]
+          const localProgress = (progress * (trace.length - 1)) % 1
+          const px = p1.x + (p2.x - p1.x) * localProgress
+          const py = p1.y + (p2.y - p1.y) * localProgress
+
+          ctx.fillStyle = `rgba(${r + 100}, ${g + 60}, ${b + 100}, ${0.8 + pulse * 0.2})`
+          ctx.beginPath()
+          ctx.arc(px, py, 3, 0, Math.PI * 2)
+          ctx.fill()
+        }
+      })
+
+      // Circuit nodes at joints
+      const nodes = [
+        {x: -40, y: -50}, {x: -20, y: -80}, {x: 0, y: -90},
+        {x: 20, y: -85}, {x: 40, y: -60}, {x: 0, y: 0}
+      ]
+      nodes.forEach(node => {
+        ctx.strokeStyle = `rgba(${r + 80}, ${g + 50}, ${b + 90}, ${0.6 + pulse * 0.3})`
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.arc(node.x, node.y, 6, 0, Math.PI * 2)
+        ctx.stroke()
+      })
+
+      ctx.restore()
+    },
+    [themeColor],
+  )
+
   useEffect(() => {
     if (burst > 0.8) {
       const { W, H } = dimensionsRef.current
@@ -434,6 +739,16 @@ function CanvasBackgroundInner() {
         drawWireframeTheme(ctx, t, W, H, scroll, currentPulse)
       } else if (currentBgTheme === "circuit") {
         drawCircuitTheme(ctx, t, W, H, scroll, currentPulse)
+      } else if (currentBgTheme === "cosmic") {
+        drawCosmicTheme(ctx, t, W, H, scroll, currentPulse)
+      } else if (currentBgTheme === "geometric") {
+        drawGeometricTheme(ctx, t, W, H, scroll, currentPulse)
+      } else if (currentBgTheme === "mesh") {
+        drawMeshTheme(ctx, t, W, H, scroll, currentPulse)
+      } else if (currentBgTheme === "neon") {
+        drawNeonTheme(ctx, t, W, H, scroll, currentPulse)
+      } else if (currentBgTheme === "circuit-hand") {
+        drawCircuitHandTheme(ctx, t, W, H, scroll, currentPulse)
       }
 
       const shouldDrawFullNeural = currentBgTheme === "neural"
@@ -623,6 +938,11 @@ function CanvasBackgroundInner() {
     triggerBurst,
     drawWireframeTheme,
     drawCircuitTheme,
+    drawCosmicTheme,
+    drawGeometricTheme,
+    drawMeshTheme,
+    drawNeonTheme,
+    drawCircuitHandTheme,
   ])
 
   return <canvas ref={canvasRef} id="bg" className="fixed inset-0 w-full h-full block z-0 bg-transparent touch-none" />

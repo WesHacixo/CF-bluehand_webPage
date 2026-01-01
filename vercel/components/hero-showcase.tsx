@@ -19,9 +19,12 @@ function HeroShowcaseInner() {
     fadeTimerRef.current = setTimeout(() => {
       setLogoOpacity(0)
       // Remove logo from DOM after fade completes
-      setTimeout(() => {
+      const removeTimer = setTimeout(() => {
         setShowLogo(false)
       }, 2000)
+      
+      // Store the second timer for cleanup
+      return () => clearTimeout(removeTimer)
     }, 2500)
 
     return () => {
@@ -77,6 +80,10 @@ function HeroShowcaseInner() {
               filter: "drop-shadow(0 0 60px rgba(127,180,255,0.5)) drop-shadow(0 0 120px rgba(127,180,255,0.25))",
             }}
             priority
+            onError={(e) => {
+              console.warn('Hamsa image failed to load:', e);
+              // Could set a fallback state here
+            }}
           />
         </div>
       )}

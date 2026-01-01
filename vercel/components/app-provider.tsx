@@ -6,6 +6,7 @@ import { BACKGROUND_THEMES, type BackgroundTheme } from "../lib/themes"
 
 type Mode = "calm" | "live"
 type Theme = "neutral" | "sovereign" | "pipeline" | "mesh" | "interface" | "research" | "startup" | "ip" | "privacy"
+
 interface AppState {
   mode: Mode
   theme: Theme
@@ -141,7 +142,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (state.mode === "live") {
       const interval = setInterval(() => {
         cycleBackgroundTheme()
-      }, 45000) // 45 seconds
+      }, 120000) // 2 minutes
       return () => clearInterval(interval)
     }
   }, [state.mode, cycleBackgroundTheme])
@@ -172,4 +173,4 @@ export function AppProvider({ children }: { children: ReactNode }) {
   )
 }
 
-export type { BackgroundTheme }
+
