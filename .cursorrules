@@ -1,0 +1,206 @@
+# Bluehand Solutions - Cursor Project Rules
+
+## Project Overview
+This is a multi-platform deployment repository containing both Cloudflare (static HTML) and Vercel (Next.js) versions of the Bluehand Solutions website. The repository uses a monorepo structure with separate branches for development and production.
+
+## Branch Protection & Workflow
+
+### CRITICAL: Production Branch Protection
+**NEVER commit directly to production branches:**
+- `Vercel-pr0` - Production Vercel deployment (attest.blue-hand.org)
+- `Cloudflare-pr0` - Production Cloudflare deployment
+
+**Production branches are READ-ONLY except via merge from dev branches.**
+
+### Branch Strategy
+- `main`: Architecture, documentation, and project overview
+- `vercel-dev`: Vercel/Next.js development work
+- `cloudflare-dev`: Cloudflare static HTML development work
+- `Vercel-pr0`: Production Vercel (merge-only from vercel-dev)
+- `Cloudflare-pr0`: Production Cloudflare (merge-only from cloudflare-dev)
+
+### Workflow Rules
+1. Always work on dev branches (`vercel-dev` or `cloudflare-dev`)
+2. Test thoroughly before merging to production
+3. Use merge commits (not squash) when merging to production branches
+4. Never force push to production branches
+
+## Commit Message Standards
+
+### Format: Conventional Commits
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+### Commit Types
+- `feat`: New feature
+- `fix`: Bug fix
+- `docs`: Documentation changes
+- `style`: Code style (formatting, no logic change)
+- `refactor`: Code refactoring
+- `perf`: Performance improvements
+- `test`: Adding/updating tests
+- `chore`: Maintenance tasks
+- `deploy`: Deployment-related changes
+
+### Rules
+- Subject: 50 chars or less, lowercase, imperative mood, no period
+- Body: Explain WHAT and WHY, wrap at 72 chars, use bullet points
+- Scope: Component name (`canvas`, `header`) or area (`vercel`, `cloudflare`, `docs`)
+
+### Examples
+✅ Good:
+- `feat(canvas): Add color selector with red/green/blue/gold themes`
+- `fix(mobile): Resolve gesture handling on iOS devices`
+- `docs(readme): Update Vercel deployment instructions`
+
+❌ Bad:
+- `updated stuff`
+- `fix`
+- `changes`
+
+## Code Quality Standards
+
+### Before Committing
+1. **Test locally:**
+   - Vercel: `cd vercel && bun run build && bun run dev`
+   - Cloudflare: `cd cloudflare && python3 -m http.server 8000`
+
+2. **Check for errors:**
+   - Run `bun run lint` (if available)
+   - Run `bun run build` to verify build succeeds
+
+3. **No white text:**
+   - BANNED: `rgba(255,255,255,...)` or `#ffffff` for text
+   - Use: `rgba(212,223,245,...)` for primary text
+   - Use: `rgba(139,155,196,...)` for muted text
+   - All text must use eye-friendly contrast colors
+
+4. **Performance:**
+   - Canvas max nodes: 60-80 (never 300+)
+   - Optimize connection checks with throttling
+   - Test on mobile devices (especially iPhone)
+
+### Code Standards
+- **No debug code in production**: Remove `console.log`, commented code, test files
+- **TypeScript**: Define types for all functions and components
+- **Error handling**: Implement proper error boundaries and fallbacks
+- **Accessibility**: ARIA labels, keyboard navigation, focus indicators
+- **Mobile-first**: Test on iPhone, optimize for touch gestures
+
+## File Naming Conventions
+
+- **Components**: `kebab-case.tsx` (e.g., `canvas-playground.tsx`)
+- **Utilities**: `kebab-case.ts` (e.g., `use-mobile.ts`)
+- **Hooks**: `kebab-case.ts` (e.g., `use-toast.ts`)
+- **Config files**: `lowercase.ext` (e.g., `next.config.mjs`, `vercel.json`)
+- **Documentation**: `UPPERCASE.md` (e.g., `README.md`, `PROJECT_RULES.md`)
+
+## Project Structure
+
+```
+CF-bluehand_webPage/
+├── cloudflare/          # Static HTML version
+│   ├── index-optimized.html
+│   ├── _headers
+│   ├── _redirects
+│   └── wrangler.toml
+├── vercel/              # Next.js version
+│   ├── app/             # Next.js App Router
+│   ├── components/      # React components
+│   ├── hooks/           # Custom React hooks
+│   ├── lib/             # Utilities
+│   └── public/          # Static assets
+├── docs/                # Shared documentation
+└── .cursorrules         # This file
+```
+
+## Tooling & Commands
+
+### Package Manager
+- **Use `bun`** for all package management (not npm/yarn)
+- Commands: `bun install`, `bun run build`, `bun dev`, `bunx vercel`, `bunx wrangler`
+
+### Deployment Commands
+- **Vercel**: `bunx vercel` (or auto-deploy via Git integration)
+- **Cloudflare**: `bunx wrangler pages deploy ./ --project-name=bluehand-solutions --commit-dirty=true`
+
+## What NOT to Commit
+
+- `node_modules/`
+- `.next/` or build artifacts
+- `.vercel/` directory
+- `*.log` files
+- `.DS_Store` or OS files
+- Environment files with secrets (`.env.local`)
+- Large binary files (use Git LFS if needed)
+- Temporary test files
+
+## AI Assistant Guidelines
+
+When working on this project:
+
+1. **Always check current branch** before making changes
+2. **Never commit directly to production branches** (`Vercel-pr0`, `Cloudflare-pr0`)
+3. **Follow commit message conventions** - use conventional commits format
+4. **Check for white text** - ensure all text uses eye-friendly colors
+5. **Test builds** - verify `bun run build` succeeds before committing
+6. **Update documentation** when making architectural changes
+7. **Use TypeScript** - add proper types to all code
+8. **Optimize performance** - especially for canvas components (max 60-80 nodes)
+9. **Mobile-first** - test and optimize for iPhone gestures
+10. **Accessibility** - ensure ARIA labels, keyboard navigation, focus indicators
+
+### When Creating Commits
+- Use the commit template (`.gitmessage`)
+- Follow conventional commits format
+- Include scope in commit type
+- Write clear, descriptive messages
+
+### When Merging to Production
+- Verify all checklist items are complete
+- Use `--no-ff` for merge commits
+- Review changes before pushing
+- Test deployment after merge
+
+## Emergency Procedures
+
+### Hotfix Process
+1. Create hotfix branch from production branch
+2. Fix the issue
+3. Commit with `fix(critical):` prefix
+4. Merge to production
+5. Backport to dev branch
+
+### Conflict Resolution
+1. Never force push to production branches
+2. Resolve conflicts locally
+3. Verify changes before pushing
+4. Test after resolution
+
+## Code Review Checklist
+
+Before merging to production, verify:
+- [ ] Code follows project style
+- [ ] No hardcoded values (use constants/config)
+- [ ] Error handling implemented
+- [ ] Mobile responsive (tested on iPhone)
+- [ ] Performance optimized (Lighthouse >90)
+- [ ] Accessibility considered (ARIA, keyboard nav)
+- [ ] No white text (eye-friendly colors only)
+- [ ] Comments for complex logic
+- [ ] TypeScript types defined
+- [ ] No console.logs or debug code
+- [ ] Build succeeds without errors
+- [ ] Documentation updated if needed
+
+## References
+
+- `PROJECT_RULES.md` - Detailed project rules and workflow
+- `BRANCH_STRATEGY.md` - Branch organization and usage
+- `README.md` - Project overview and quick start
+- `.gitmessage` - Git commit message template
