@@ -139,7 +139,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (state.mode === "live") {
       const interval = setInterval(() => {
         cycleBackgroundTheme()
-      }, 45000) // 45 seconds
+      }, 120000) // 2 minutes
       return () => clearInterval(interval)
     }
   }, [state.mode, cycleBackgroundTheme])
