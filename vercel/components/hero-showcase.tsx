@@ -18,9 +18,12 @@ function HeroShowcaseInner() {
     fadeTimerRef.current = setTimeout(() => {
       setLogoOpacity(0)
       // Remove logo from DOM after fade completes
-      setTimeout(() => {
+      const removeTimer = setTimeout(() => {
         setShowLogo(false)
       }, 2000)
+      
+      // Store the second timer for cleanup
+      return () => clearTimeout(removeTimer)
     }, 2500)
 
     return () => {
