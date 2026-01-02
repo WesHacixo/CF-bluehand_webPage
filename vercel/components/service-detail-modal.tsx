@@ -324,17 +324,15 @@ export function ServiceDetailModal({ serviceKey, isOpen, onClose }: ServiceDetai
           {/* Content */}
           <div className="p-5 flex flex-col gap-5 overflow-y-auto flex-1 min-h-0">
             {/* What it is */}
-            <div>
+            <div
+              className="card cursor-pointer group !bg-[rgba(127,180,255,0.06)]"
+              onClick={() => setExpandedSection({ type: "whatItIs", title: "What it is" })}
+            >
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs tracking-[0.14em] uppercase text-[rgba(234,240,255,0.85)]">What it is</h4>
-                <button
-                  className="text-[10px] tracking-[0.1em] uppercase text-[rgba(127,180,255,0.8)] hover:text-[rgba(127,180,255,1)] transition-colors cursor-pointer"
-                  onClick={() => setExpandedSection({ type: "whatItIs", title: "What it is" })}
-                >
-                  Expand →
-                </button>
+                <h4 className="k">What it is</h4>
+                <span className="text-[10px] opacity-50 group-hover:opacity-80 transition-opacity">Expand →</span>
               </div>
-              <p className="text-[rgba(234,240,255,0.78)] text-[15px] leading-relaxed m-0 line-clamp-3">
+              <p className="v line-clamp-3">
                 {detail.whatItIs}
               </p>
             </div>
@@ -342,15 +340,13 @@ export function ServiceDetailModal({ serviceKey, isOpen, onClose }: ServiceDetai
             {/* Two column grid for deliverables and requirements */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* What we deliver */}
-              <div className="card !bg-[rgba(127,180,255,0.06)]">
+              <div
+                className="card cursor-pointer group !bg-[rgba(127,180,255,0.06)]"
+                onClick={() => setExpandedSection({ type: "whatWeDeliver", title: "What we deliver" })}
+              >
                 <div className="flex items-center justify-between mb-2">
                   <p className="k">What we deliver</p>
-                  <button
-                    className="text-[10px] tracking-[0.1em] uppercase text-[rgba(127,180,255,0.8)] hover:text-[rgba(127,180,255,1)] transition-colors cursor-pointer"
-                    onClick={() => setExpandedSection({ type: "whatWeDeliver", title: "What we deliver" })}
-                  >
-                    Expand →
-                  </button>
+                  <span className="text-[10px] opacity-50 group-hover:opacity-80 transition-opacity">Expand →</span>
                 </div>
                 <ul className="m-0 pl-4 text-[rgba(169,183,230,0.95)] text-[13px] leading-relaxed flex flex-col gap-1">
                   {detail.whatWeDeliver.slice(0, 3).map((item, i) => (
@@ -363,15 +359,13 @@ export function ServiceDetailModal({ serviceKey, isOpen, onClose }: ServiceDetai
               </div>
 
               {/* What it requires */}
-              <div className="card !bg-[rgba(255,181,90,0.06)]">
+              <div
+                className="card cursor-pointer group !bg-[rgba(255,181,90,0.06)]"
+                onClick={() => setExpandedSection({ type: "requirements", title: "What it requires" })}
+              >
                 <div className="flex items-center justify-between mb-2">
                   <p className="k">What it requires</p>
-                  <button
-                    className="text-[10px] tracking-[0.1em] uppercase text-[rgba(255,181,90,0.8)] hover:text-[rgba(255,181,90,1)] transition-colors cursor-pointer"
-                    onClick={() => setExpandedSection({ type: "requirements", title: "What it requires" })}
-                  >
-                    Expand →
-                  </button>
+                  <span className="text-[10px] opacity-50 group-hover:opacity-80 transition-opacity">Expand →</span>
                 </div>
                 <ul className="m-0 pl-4 text-[rgba(169,183,230,0.95)] text-[13px] leading-relaxed flex flex-col gap-1">
                   {detail.requirements.slice(0, 3).map((item, i) => (
