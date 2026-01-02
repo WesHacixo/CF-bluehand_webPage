@@ -90,7 +90,7 @@ function HeroShowcaseInner() {
           style={{ opacity: logoOpacity }}
         >
           <Image
-            src="/images/hamsa-cyan.png"
+            src="/images/hamsa/hamsa.webp"
             alt="Bluehand Hamsa"
             fill
             className="object-contain"
@@ -100,7 +100,6 @@ function HeroShowcaseInner() {
             priority
             onError={(e) => {
               console.warn('Hamsa image failed to load:', e);
-              // Could set a fallback state here
             }}
           />
         </div>

@@ -330,7 +330,7 @@ export function ServiceDetailModal({ serviceKey, isOpen, onClose }: ServiceDetai
               onClick={() => setExpandedSection({ type: "whatItIs", title: "What it is" })}
             >
               <h4 className="k">What it is</h4>
-              <p className="v line-clamp-3">
+              <p className="v">
                 {detail.whatItIs}
               </p>
             </div>

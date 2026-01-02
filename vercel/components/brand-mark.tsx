@@ -29,7 +29,7 @@ function BrandMarkInner() {
       style={{ opacity }}
     >
       <Image
-        src="/images/bluehand-orb-logo.png"
+        src="/images/bluehand-orb/bluehand-orb.webp"
         alt="Bluehand logo"
         width={44}
         height={44}
