@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useCallback } from "react"
+import { useEffect, useCallback, useState } from "react"
 import { useApp } from "./app-provider"
 
 export type ServiceKey = "sovereign" | "pipeline" | "mesh" | "interface" | "research" | "startup" | "ip" | "privacy"
@@ -183,12 +183,89 @@ interface ServiceDetailModalProps {
   onClose: () => void
 }
 
-export function ServiceDetailModal({ serviceKey, isOpen, onClose }: ServiceDetailModalProps) {
-  const { openContactForm, pulseSeal } = useApp()
-
+// Expandable content popup component
+function ExpandableContentPopup({
+  isOpen,
+  onClose,
+  title,
+  content,
+}: {
+  isOpen: boolean
+  onClose: () => void
+  title: string
+  content: string | string[]
+}) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose()
+    }
+    if (isOpen) {
+      window.addEventListener("keydown", handleKeyDown)
+    }
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [isOpen, onClose])
+
+  if (!isOpen) return null
+
+  return (
+    <div
+      className="fixed inset-0 z-[10] bg-black/70 backdrop-blur-[8px] flex items-center justify-center p-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
+    >
+      <div className="max-w-[600px] w-full border border-white/15 rounded-[18px] bg-[rgba(10,18,45,0.95)] shadow-[0_30px_90px_rgba(0,0,0,0.65)] overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-2.5 p-[14px_16px] border-b border-white/10">
+          <div className="text-xs tracking-[0.14em] uppercase text-[rgba(234,240,255,0.92)]">{title}</div>
+          <button
+            className="pill"
+            onClick={(e) => {
+              e.stopPropagation()
+              onClose()
+            }}
+          >
+            Close
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-5">
+          {typeof content === "string" ? (
+            <p className="text-[rgba(234,240,255,0.85)] text-[15px] leading-relaxed m-0 whitespace-pre-wrap">
+              {content}
+            </p>
+          ) : (
+            <ul className="m-0 pl-4 text-[rgba(169,183,230,0.95)] text-[14px] leading-relaxed flex flex-col gap-2">
+              {content.map((item, i) => (
+                <li key={i}>{item}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function ServiceDetailModal({ serviceKey, isOpen, onClose }: ServiceDetailModalProps) {
+  const { openContactForm, pulseSeal } = useApp()
+  const [expandedSection, setExpandedSection] = useState<{
+    type: "whatItIs" | "whatWeDeliver" | "requirements"
+    title: string
+  } | null>(null)
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        if (expandedSection) {
+          setExpandedSection(null)
+        } else {
+          onClose()
+        }
+      }
     }
     if (isOpen) {
       window.addEventListener("keydown", handleKeyDown)
@@ -198,7 +275,7 @@ export function ServiceDetailModal({ serviceKey, isOpen, onClose }: ServiceDetai
       window.removeEventListener("keydown", handleKeyDown)
       document.body.style.overflow = ""
     }
-  }, [isOpen, onClose])
+  }, [isOpen, onClose, expandedSection])
 
   const handleCTA = useCallback(() => {
     pulseSeal()
@@ -207,72 +284,135 @@ export function ServiceDetailModal({ serviceKey, isOpen, onClose }: ServiceDetai
     setTimeout(() => openContactForm(), 150)
   }, [pulseSeal, onClose, openContactForm])
 
+  const handleClose = useCallback(
+    (e?: React.MouseEvent) => {
+      if (e) {
+        e.stopPropagation()
+      }
+      onClose()
+    },
+    [onClose]
+  )
+
   if (!isOpen || !serviceKey) return null
 
   const detail = serviceDetails[serviceKey]
 
   return (
-    <div
-      className="fixed inset-0 z-[5] bg-black/60 backdrop-blur-[12px] p-[clamp(16px,3vw,36px)] overflow-y-auto"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
-      }}
-    >
-      <div className="max-w-[720px] mx-auto mt-[4vh] mb-[4vh] border border-white/15 rounded-[18px] bg-[rgba(10,18,45,0.80)] shadow-[0_30px_90px_rgba(0,0,0,0.55)] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-2.5 p-[14px_16px] border-b border-white/10">
-          <div>
-            <div className="tracking-[0.18em] uppercase text-xs text-[rgba(234,240,255,0.92)]">{detail.title}</div>
-            <div className="text-[rgba(169,183,230,0.9)] text-sm mt-1">{detail.tagline}</div>
-          </div>
-          <button className="pill" onClick={onClose}>
-            Close
-          </button>
-        </div>
-
-        {/* Content */}
-        <div className="p-5 flex flex-col gap-5">
-          {/* What it is */}
-          <div>
-            <h4 className="text-xs tracking-[0.14em] uppercase text-[rgba(234,240,255,0.85)] mb-2">What it is</h4>
-            <p className="text-[rgba(234,240,255,0.78)] text-[15px] leading-relaxed m-0">{detail.whatItIs}</p>
+    <>
+      <div
+        className="fixed inset-0 z-[5] bg-black/60 backdrop-blur-[12px] p-[clamp(16px,3vw,36px)] flex items-center justify-center"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) handleClose()
+        }}
+      >
+        <div className="max-w-[720px] w-full border border-white/15 rounded-[18px] bg-[rgba(10,18,45,0.80)] shadow-[0_30px_90px_rgba(0,0,0,0.55)] overflow-hidden max-h-[85vh] flex flex-col">
+          {/* Header */}
+          <div className="flex items-center justify-between gap-2.5 p-[14px_16px] border-b border-white/10 flex-shrink-0">
+            <div>
+              <div className="tracking-[0.18em] uppercase text-xs text-[rgba(234,240,255,0.92)]">{detail.title}</div>
+              <div className="text-[rgba(169,183,230,0.9)] text-sm mt-1">{detail.tagline}</div>
+            </div>
+            <button
+              className="pill"
+              onClick={handleClose}
+            >
+              Close
+            </button>
           </div>
 
-          {/* Two column grid for deliverables and requirements */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* What we deliver */}
-            <div className="card !bg-[rgba(127,180,255,0.06)]">
-              <p className="k">What we deliver</p>
-              <ul className="m-0 pl-4 text-[rgba(169,183,230,0.95)] text-[13px] leading-relaxed flex flex-col gap-1">
-                {detail.whatWeDeliver.map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
+          {/* Content */}
+          <div className="p-5 flex flex-col gap-5 overflow-y-auto flex-1 min-h-0">
+            {/* What it is */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs tracking-[0.14em] uppercase text-[rgba(234,240,255,0.85)]">What it is</h4>
+                <button
+                  className="text-[10px] tracking-[0.1em] uppercase text-[rgba(127,180,255,0.8)] hover:text-[rgba(127,180,255,1)] transition-colors cursor-pointer"
+                  onClick={() => setExpandedSection({ type: "whatItIs", title: "What it is" })}
+                >
+                  Expand →
+                </button>
+              </div>
+              <p className="text-[rgba(234,240,255,0.78)] text-[15px] leading-relaxed m-0 line-clamp-3">
+                {detail.whatItIs}
+              </p>
             </div>
 
-            {/* What it requires */}
-            <div className="card !bg-[rgba(255,181,90,0.06)]">
-              <p className="k">What it requires</p>
-              <ul className="m-0 pl-4 text-[rgba(169,183,230,0.95)] text-[13px] leading-relaxed flex flex-col gap-1">
-                {detail.requirements.map((item, i) => (
-                  <li key={i}>{item}</li>
-                ))}
-              </ul>
+            {/* Two column grid for deliverables and requirements */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* What we deliver */}
+              <div className="card !bg-[rgba(127,180,255,0.06)]">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="k">What we deliver</p>
+                  <button
+                    className="text-[10px] tracking-[0.1em] uppercase text-[rgba(127,180,255,0.8)] hover:text-[rgba(127,180,255,1)] transition-colors cursor-pointer"
+                    onClick={() => setExpandedSection({ type: "whatWeDeliver", title: "What we deliver" })}
+                  >
+                    Expand →
+                  </button>
+                </div>
+                <ul className="m-0 pl-4 text-[rgba(169,183,230,0.95)] text-[13px] leading-relaxed flex flex-col gap-1">
+                  {detail.whatWeDeliver.slice(0, 3).map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                  {detail.whatWeDeliver.length > 3 && (
+                    <li className="text-[rgba(127,180,255,0.7)] italic">+{detail.whatWeDeliver.length - 3} more...</li>
+                  )}
+                </ul>
+              </div>
+
+              {/* What it requires */}
+              <div className="card !bg-[rgba(255,181,90,0.06)]">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="k">What it requires</p>
+                  <button
+                    className="text-[10px] tracking-[0.1em] uppercase text-[rgba(255,181,90,0.8)] hover:text-[rgba(255,181,90,1)] transition-colors cursor-pointer"
+                    onClick={() => setExpandedSection({ type: "requirements", title: "What it requires" })}
+                  >
+                    Expand →
+                  </button>
+                </div>
+                <ul className="m-0 pl-4 text-[rgba(169,183,230,0.95)] text-[13px] leading-relaxed flex flex-col gap-1">
+                  {detail.requirements.slice(0, 3).map((item, i) => (
+                    <li key={i}>{item}</li>
+                  ))}
+                  {detail.requirements.length > 3 && (
+                    <li className="text-[rgba(255,181,90,0.7)] italic">+{detail.requirements.length - 3} more...</li>
+                  )}
+                </ul>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Footer CTA */}
-        <div className="px-5 pb-5 flex gap-2.5 flex-wrap items-center">
-          <button className="btn" onClick={handleCTA}>
-            {detail.cta}
-          </button>
-          <button className="btn alt" onClick={onClose}>
-            Back
-          </button>
-          <span className="text-[rgba(169,183,230,0.7)] text-xs ml-auto">or email hello@bluehand.solutions</span>
+          {/* Footer CTA */}
+          <div className="px-5 pb-5 flex gap-2.5 flex-wrap items-center flex-shrink-0 border-t border-white/10 pt-4 mt-2">
+            <button className="btn" onClick={handleCTA}>
+              {detail.cta}
+            </button>
+            <button className="btn alt" onClick={handleClose}>
+              Back
+            </button>
+            <span className="text-[rgba(169,183,230,0.7)] text-xs ml-auto">or email hello@bluehand.solutions</span>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Expandable content popup */}
+      {expandedSection && (
+        <ExpandableContentPopup
+          isOpen={!!expandedSection}
+          onClose={() => setExpandedSection(null)}
+          title={expandedSection.title}
+          content={
+            expandedSection.type === "whatItIs"
+              ? detail.whatItIs
+              : expandedSection.type === "whatWeDeliver"
+                ? detail.whatWeDeliver
+                : detail.requirements
+          }
+        />
+      )}
+    </>
   )
 }
