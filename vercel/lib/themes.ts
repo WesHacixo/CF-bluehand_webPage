@@ -2,6 +2,11 @@ export const BACKGROUND_THEME_KEYS = {
   neural: "neural",
   wireframe: "wireframe",
   circuit: "circuit",
+  cosmic: "cosmic",
+  geometric: "geometric",
+  mesh: "mesh",
+  neon: "neon",
+  "circuit-hand": "circuit-hand",
 } as const
 
 export const BACKGROUND_THEMES = Object.values(BACKGROUND_THEME_KEYS)
