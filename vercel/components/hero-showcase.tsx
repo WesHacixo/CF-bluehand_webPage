@@ -11,19 +11,17 @@ function HeroShowcaseInner() {
   const [showLogo, setShowLogo] = useState(true)
   const [logoOpacity, setLogoOpacity] = useState(1)
   const fadeTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const prevThemeRef = useRef(backgroundTheme)
 
   useEffect(() => {
     setMounted(true)
 
-    // Start fading out logo after 2.5 seconds
+    // Start fading out logo after 2.5 seconds (initial load only)
     fadeTimerRef.current = setTimeout(() => {
       setLogoOpacity(0)
-      // Remove logo from DOM after fade completes
       const removeTimer = setTimeout(() => {
         setShowLogo(false)
       }, 2000)
-      
-      // Store the second timer for cleanup
       return () => clearTimeout(removeTimer)
     }, 2500)
 
@@ -33,6 +31,26 @@ function HeroShowcaseInner() {
       }
     }
   }, [])
+
+  // Fade logo in/out when theme changes
+  useEffect(() => {
+    if (prevThemeRef.current !== backgroundTheme && mounted) {
+      // Fade out
+      setLogoOpacity(0)
+      const fadeOutTimer = setTimeout(() => {
+        setShowLogo(false)
+        // Fade back in after brief pause
+        setTimeout(() => {
+          setShowLogo(true)
+          setLogoOpacity(1)
+        }, 300)
+      }, 800)
+      
+      prevThemeRef.current = backgroundTheme
+      return () => clearTimeout(fadeOutTimer)
+    }
+    prevThemeRef.current = backgroundTheme
+  }, [backgroundTheme, mounted])
 
   return (
     <section className="relative w-full min-h-[50vh] md:min-h-[60vh] lg:min-h-[65vh] flex flex-col items-center justify-center overflow-hidden rounded-[18px]">
