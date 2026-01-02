@@ -113,27 +113,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const openServiceDetail = useCallback((key: ServiceKey) => {
-    setState((prev) => {
-      // Map service keys to background themes for dynamic backgrounds
-      const backgroundThemeMap: Record<ServiceKey, BackgroundTheme> = {
-        sovereign: "neural",
-        pipeline: "circuit",
-        mesh: "mesh",
-        interface: "wireframe",
-        research: "cosmic",
-        startup: "geometric",
-        ip: "neon",
-        privacy: "circuit-hand",
-      }
-      return {
-        ...prev,
-        selectedService: key,
-        isServiceDetailOpen: true,
-        theme: key,
-        backgroundTheme: backgroundThemeMap[key] || prev.backgroundTheme,
-        sealPulse: Math.min(1, prev.sealPulse + 0.3),
-      }
-    })
+    setState((prev) => ({
+      ...prev,
+      selectedService: key,
+      isServiceDetailOpen: true,
+      theme: key,
+      sealPulse: Math.min(1, prev.sealPulse + 0.3),
+    }))
   }, [])
 
   const closeServiceDetail = useCallback(() => {

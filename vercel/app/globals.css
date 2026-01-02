@@ -242,13 +242,66 @@
   transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
 }
 
-.card:hover {
+/* Multi-colored theme-based hover highlights - only for expandable cards */
+.card[data-theme]:hover {
   transform: translateY(-2px);
-  border-color: rgba(127, 180, 255, 0.45);
   background: rgba(0, 0, 0, 0.22);
+}
+
+.card[data-theme="sovereign"]:hover {
+  border-color: rgba(127, 180, 255, 0.45);
   box-shadow: 0 0 20px rgba(127, 180, 255, 0.25),
               0 0 40px rgba(127, 180, 255, 0.15),
               inset 0 0 20px rgba(127, 180, 255, 0.08);
+}
+
+.card[data-theme="pipeline"]:hover {
+  border-color: rgba(255, 181, 90, 0.45);
+  box-shadow: 0 0 20px rgba(255, 181, 90, 0.25),
+              0 0 40px rgba(255, 181, 90, 0.15),
+              inset 0 0 20px rgba(255, 181, 90, 0.08);
+}
+
+.card[data-theme="mesh"]:hover {
+  border-color: rgba(255, 93, 125, 0.45);
+  box-shadow: 0 0 20px rgba(255, 93, 125, 0.25),
+              0 0 40px rgba(255, 93, 125, 0.15),
+              inset 0 0 20px rgba(255, 93, 125, 0.08);
+}
+
+.card[data-theme="interface"]:hover {
+  border-color: rgba(200, 220, 255, 0.45);
+  box-shadow: 0 0 20px rgba(200, 220, 255, 0.25),
+              0 0 40px rgba(200, 220, 255, 0.15),
+              inset 0 0 20px rgba(200, 220, 255, 0.08);
+}
+
+.card[data-theme="research"]:hover {
+  border-color: rgba(170, 210, 255, 0.45);
+  box-shadow: 0 0 20px rgba(170, 210, 255, 0.25),
+              0 0 40px rgba(170, 210, 255, 0.15),
+              inset 0 0 20px rgba(170, 210, 255, 0.08);
+}
+
+.card[data-theme="startup"]:hover {
+  border-color: rgba(255, 200, 135, 0.45);
+  box-shadow: 0 0 20px rgba(255, 200, 135, 0.25),
+              0 0 40px rgba(255, 200, 135, 0.15),
+              inset 0 0 20px rgba(255, 200, 135, 0.08);
+}
+
+.card[data-theme="ip"]:hover {
+  border-color: rgba(255, 135, 170, 0.45);
+  box-shadow: 0 0 20px rgba(255, 135, 170, 0.25),
+              0 0 40px rgba(255, 135, 170, 0.15),
+              inset 0 0 20px rgba(255, 135, 170, 0.08);
+}
+
+.card[data-theme="privacy"]:hover {
+  border-color: rgba(170, 255, 220, 0.45);
+  box-shadow: 0 0 20px rgba(170, 255, 220, 0.25),
+              0 0 40px rgba(170, 255, 220, 0.15),
+              inset 0 0 20px rgba(170, 255, 220, 0.08);
 }
 
 .card .k {

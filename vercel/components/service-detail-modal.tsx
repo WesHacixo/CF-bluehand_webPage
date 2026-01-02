@@ -325,13 +325,11 @@ export function ServiceDetailModal({ serviceKey, isOpen, onClose }: ServiceDetai
           <div className="p-5 flex flex-col gap-5 overflow-y-auto flex-1 min-h-0">
             {/* What it is */}
             <div
-              className="card cursor-pointer group !bg-[rgba(127,180,255,0.06)]"
+              className="card cursor-pointer"
+              data-theme={serviceKey}
               onClick={() => setExpandedSection({ type: "whatItIs", title: "What it is" })}
             >
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="k">What it is</h4>
-                <span className="text-[10px] opacity-50 group-hover:opacity-80 transition-opacity">Expand →</span>
-              </div>
+              <h4 className="k">What it is</h4>
               <p className="v line-clamp-3">
                 {detail.whatItIs}
               </p>
@@ -341,38 +339,34 @@ export function ServiceDetailModal({ serviceKey, isOpen, onClose }: ServiceDetai
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* What we deliver */}
               <div
-                className="card cursor-pointer group !bg-[rgba(127,180,255,0.06)]"
+                className="card cursor-pointer"
+                data-theme={serviceKey}
                 onClick={() => setExpandedSection({ type: "whatWeDeliver", title: "What we deliver" })}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="k">What we deliver</p>
-                  <span className="text-[10px] opacity-50 group-hover:opacity-80 transition-opacity">Expand →</span>
-                </div>
+                <p className="k">What we deliver</p>
                 <ul className="m-0 pl-4 text-[rgba(169,183,230,0.95)] text-[13px] leading-relaxed flex flex-col gap-1">
                   {detail.whatWeDeliver.slice(0, 3).map((item, i) => (
                     <li key={i}>{item}</li>
                   ))}
                   {detail.whatWeDeliver.length > 3 && (
-                    <li className="text-[rgba(127,180,255,0.7)] italic">+{detail.whatWeDeliver.length - 3} more...</li>
+                    <li className="text-[rgba(169,183,230,0.6)] italic">+{detail.whatWeDeliver.length - 3} more...</li>
                   )}
                 </ul>
               </div>
 
               {/* What it requires */}
               <div
-                className="card cursor-pointer group !bg-[rgba(255,181,90,0.06)]"
+                className="card cursor-pointer"
+                data-theme={serviceKey}
                 onClick={() => setExpandedSection({ type: "requirements", title: "What it requires" })}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <p className="k">What it requires</p>
-                  <span className="text-[10px] opacity-50 group-hover:opacity-80 transition-opacity">Expand →</span>
-                </div>
+                <p className="k">What it requires</p>
                 <ul className="m-0 pl-4 text-[rgba(169,183,230,0.95)] text-[13px] leading-relaxed flex flex-col gap-1">
                   {detail.requirements.slice(0, 3).map((item, i) => (
                     <li key={i}>{item}</li>
                   ))}
                   {detail.requirements.length > 3 && (
-                    <li className="text-[rgba(255,181,90,0.7)] italic">+{detail.requirements.length - 3} more...</li>
+                    <li className="text-[rgba(169,183,230,0.6)] italic">+{detail.requirements.length - 3} more...</li>
                   )}
                 </ul>
               </div>
